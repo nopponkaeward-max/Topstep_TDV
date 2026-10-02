@@ -1,6 +1,6 @@
 # TradingView → คลิกปุ่ม TopstepX บนเครื่องตัวเอง
 
-สคริปต์ Python รันบน PC/Mac ของคุณ รับสัญญาณจาก TradingView แล้ว **กดคีย์ลัด (หรือคลิกปุ่ม) Buy/Sell/Flatten บนหน้าจอ TopstepX ให้** ไม่ผ่านบริการตัวกลางและไม่ใช้ API
+สคริปต์ Python รันบน PC/Mac ของคุณ รับสัญญาณจาก TradingView แล้ว **กดคีย์ลัด (หรือคลิกปุ่ม) Buy/Sell (เปิดออเดอร์เท่านั้น) บนหน้าจอ TopstepX ให้** ส่วนปิดออเดอร์/ตั้ง stop เอง manual ไม่ผ่านบริการตัวกลางและไม่ใช้ API
 
 ```
 TradingView Alert ──(อีเมล หรือ Webhook)──▶ clicker.py ──pyautogui──▶ กดคีย์ลัด/คลิกปุ่มบน TopstepX
@@ -25,7 +25,7 @@ cp config.example.json config.json   # แล้วแก้ค่าในไ�
 
 ### `hotkey` (แนะนำ ค่าเริ่มต้น)
 ใช้ฟีเจอร์ Hotkeys ของ TopstepX เร็วและไม่ผูกกับตำแหน่งปุ่ม
-1. ใน TopstepX ตั้งคีย์ลัด Buy Market / Sell Market / Flatten (ถ้ามี) แล้วใส่ชุดเดียวกันใน `hotkeys` ของ config เช่น `["ctrl","alt","b"]`
+1. ใน TopstepX ตั้งคีย์ลัด Buy Market / Sell Market แล้วใส่ชุดเดียวกันใน `hotkeys` ของ config เช่น `["ctrl","alt","b"]`
 2. **อย่าใช้ Ctrl+B / Ctrl+S ล้วนๆ** เพราะเบราว์เซอร์ใช้เป็น Bookmarks / Save Page ได้ ให้เพิ่ม `Alt` หรือ `Shift` (เช่น Ctrl+Alt+B) และลองกดเองก่อนว่า TopstepX รับและเบราว์เซอร์ไม่แย่งคีย์
 3. คีย์ลัดทำงานเฉพาะตอนหน้า TopstepX **อยู่หน้าสุดและโฟกัสอยู่** สคริปต์จึงดึงหน้าต่างขึ้นมาให้ก่อนกดคีย์:
    - macOS: ใส่ `focus_app` เป็นชื่อแอป เช่น `"Google Chrome"`
@@ -37,7 +37,7 @@ cp config.example.json config.json   # แล้วแก้ค่าในไ�
 คลิกตามพิกัดปุ่มที่บันทึกด้วย `calibrate` เหมาะถ้า TopstepX ไม่มีคีย์ลัดสำหรับปุ่มนั้น
 
 ## ขั้นตอน
-1. (โหมด click) `python clicker.py calibrate` เปิด TopstepX ไว้ตำแหน่งที่ใช้เทรดจริง แล้ววางเมาส์บนปุ่ม buy / sell / flatten ตามที่สคริปต์บอก (ถ้ามีหน้าต่างยืนยันออเดอร์ ให้บันทึก `buy_confirm`/`sell_confirm` ด้วย)
+1. (โหมด click) `python clicker.py calibrate` เปิด TopstepX ไว้ตำแหน่งที่ใช้เทรดจริง แล้ววางเมาส์บนปุ่ม buy / sell ตามที่สคริปต์บอก (ถ้ามีหน้าต่างยืนยันออเดอร์ ให้บันทึก `buy_confirm`/`sell_confirm` ด้วย)
 2. `python clicker.py test buy` ดูว่าทำงานถูกต้อง (ตอน `dry_run: true` จะแค่พิมพ์ข้อความ ตั้งเป็น `false` เมื่อพร้อมทดสอบจริงบน Practice)
 3. ตั้ง TradingView Alert (ดูด้านล่าง)
 4. `python clicker.py run` แล้วปล่อยทิ้งไว้
@@ -58,7 +58,7 @@ TradingView ส่งอีเมลเมื่อ Alert ทำงาน สค
 ```json
 {"secret":"รหัสเดียวกับใน config.json","action":"buy"}
 ```
-`action` เป็น `buy`, `sell` หรือ `flatten` (Strategy ใช้ `{{strategy.order.action}}` แทนค่าได้)
+`action` เป็น `buy` หรือ `sell` เท่านั้น ข้อความอื่นถูกปฏิเสธ (Strategy ใช้ `{{strategy.order.action}}` แทนค่าได้)
 
 ## ปรับค่าใน config.json
 | ค่า | ความหมาย |

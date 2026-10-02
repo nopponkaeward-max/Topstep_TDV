@@ -19,7 +19,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 CONFIG_PATH = Path(__file__).with_name("config.json")
-ACTIONS = ("buy", "sell", "flatten")
+ACTIONS = ("buy", "sell")  # เปิดออเดอร์เท่านั้น ปิด/ออกเอง manual
 
 lock = threading.Lock()
 last_click = 0.0
