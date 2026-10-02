@@ -1,5 +1,6 @@
 {
   "source": "imap",
+  "mode": "hotkey",
   "secret": "เปลี่ยนเป็นรหัสลับยาวๆ ของคุณ",
   "dry_run": true,
   "cooldown_seconds": 5,
@@ -14,5 +15,25 @@
     "sender": "noreply@tradingview.com",
     "poll_seconds": 5
   },
-  "buttons": {}
+  "buttons": {},
+  "hotkeys": {
+    "buy": [
+      "ctrl",
+      "alt",
+      "b"
+    ],
+    "sell": [
+      "ctrl",
+      "alt",
+      "s"
+    ],
+    "flatten": [
+      "ctrl",
+      "alt",
+      "f"
+    ]
+  },
+  "focus_app": "Google Chrome",
+  "focus_title": "TopstepX",
+  "focus_click": null
 }

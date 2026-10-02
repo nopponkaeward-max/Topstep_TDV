@@ -2,13 +2,15 @@
 """รับสัญญาณ Buy/Sell จาก TradingView แล้วคลิกปุ่มบนหน้าจอ TopstepX บนเครื่องของคุณเอง
 
 ใช้งาน:
-  python clicker.py calibrate     # บันทึกตำแหน่งปุ่ม
-  python clicker.py test buy      # ทดสอบคลิก (ตาม dry_run)
+  python clicker.py calibrate     # (โหมด click) บันทึกตำแหน่งปุ่ม / จุดโฟกัส
+  python clicker.py test buy      # ทดสอบกดคีย์ลัด/คลิก (ตาม dry_run)
   python clicker.py run           # เริ่มรับสัญญาณ
 """
 import email
 import imaplib
 import json
+import platform
+import subprocess
 import sys
 import threading
 import time
@@ -52,13 +54,47 @@ def click_point(pg, point, label):
     log(f"คลิก {label} ที่ ({point['x']}, {point['y']})")
 
 
+def focus_window(cfg, pg):
+    """ดึงหน้าต่างเบราว์เซอร์ที่เปิด TopstepX ขึ้นมาโฟกัส เพราะคีย์ลัดทำงานเฉพาะหน้าต่างที่โฟกัส"""
+    system = platform.system()
+    if system == "Darwin" and cfg.get("focus_app"):
+        subprocess.run(["osascript", "-e", f'tell application "{cfg["focus_app"]}" to activate'], check=False)
+    elif system == "Windows" and cfg.get("focus_title"):
+        import pygetwindow as gw  # pip install pygetwindow (เฉพาะ Windows)
+
+        wins = gw.getWindowsWithTitle(cfg["focus_title"])
+        if not wins:
+            raise RuntimeError(f"ไม่พบหน้าต่างที่ชื่อมี '{cfg['focus_title']}'")
+        if wins[0].isMinimized:
+            wins[0].restore()
+        wins[0].activate()
+    point = cfg.get("focus_click")  # จุดว่างที่คลิกแล้วไม่เกิดอะไร ช่วยย้ายโฟกัสออกจากช่องพิมพ์
+    if point:
+        pg.click(point["x"], point["y"])
+    time.sleep(cfg.get("focus_delay_seconds", 0.15))
+
+
+def send_hotkey(cfg, action):
+    keys = cfg.get("hotkeys", {}).get(action)
+    if not keys:
+        raise RuntimeError(f"ยังไม่ได้ตั้ง hotkeys.{action} ใน config.json")
+    pg = gui()
+    focus_window(cfg, pg)
+    pg.hotkey(*keys)
+    log(f"กดคีย์ลัด {'+'.join(keys)} ({action})")
+
+
 def perform(cfg, action):
     """คลิกปุ่มตาม action คืน (ok, ข้อความ)"""
     global last_click
     if action not in ACTIONS:
         return False, f"action ไม่รู้จัก: {action}"
-    btn = cfg["buttons"].get(action)
-    if not btn:
+    hotkey_mode = cfg.get("mode", "hotkey") == "hotkey"
+    btn = cfg.get("buttons", {}).get(action)
+    if hotkey_mode:
+        if not cfg.get("hotkeys", {}).get(action):
+            return False, f"ยังไม่ได้ตั้ง hotkeys.{action} ใน config.json"
+    elif not btn:
         return False, f"ยังไม่ได้ calibrate ปุ่ม {action}"
 
     with lock:
@@ -70,7 +106,13 @@ def perform(cfg, action):
             return False, "ข้าม: ครบจำนวนคลิกสูงสุดต่อชั่วโมงแล้ว"
 
         if cfg.get("dry_run", True):
-            log(f"[DRY RUN] จะคลิก {action} ที่ ({btn['x']}, {btn['y']}) แต่ไม่ได้คลิกจริง")
+            what = "+".join(cfg["hotkeys"][action]) if hotkey_mode else f"({btn['x']}, {btn['y']})"
+            log(f"[DRY RUN] จะ{'กดคีย์ลัด' if hotkey_mode else 'คลิก'} {action} -> {what} แต่ยังไม่ได้ทำจริง")
+        elif hotkey_mode:
+            try:
+                send_hotkey(cfg, action)
+            except Exception as e:  # noqa: BLE001
+                return False, f"กดคีย์ลัดไม่สำเร็จ: {e}"
         else:
             pg = gui()
             click_point(pg, btn, action)
@@ -170,10 +212,26 @@ def run_imap(cfg):
 
 
 # ---------- คำสั่งช่วย ----------
+def record_point(pg, name):
+    for i in range(5, 0, -1):
+        print(f"  วางเมาส์บน {name} ... {i}", end="\r", flush=True)
+        time.sleep(1)
+    x, y = pg.position()
+    print(f"  บันทึก {name} = ({x}, {y})        ")
+    return {"x": x, "y": y}
+
+
 def calibrate(cfg):
     pg = gui()
-    cfg.setdefault("buttons", {})
     print("เปิด TopstepX ให้อยู่ตำแหน่ง/ขนาด/zoom เดียวกับตอนเทรดจริง แล้วทำตามขั้นตอน")
+    if cfg.get("mode", "hotkey") == "hotkey":
+        ans = input("\nบันทึก 'focus_click' (จุดว่างบนหน้าเว็บที่คลิกแล้วไม่เกิดอะไร ใช้ย้ายโฟกัสก่อนกดคีย์ลัด)? Enter=ใช่ / s=ข้าม: ")
+        if ans.strip().lower() != "s":
+            cfg["focus_click"] = record_point(pg, "focus_click")
+        save_config(cfg)
+        print("\nบันทึกลง config.json แล้ว")
+        return
+    cfg.setdefault("buttons", {})
     names = list(ACTIONS) + [f"{a}_confirm" for a in ("buy", "sell")]
     for name in names:
         optional = name.endswith("_confirm")
@@ -181,12 +239,7 @@ def calibrate(cfg):
         if ans.strip().lower() == "s":
             cfg["buttons"].pop(name, None)
             continue
-        for i in range(5, 0, -1):
-            print(f"  วางเมาส์บนปุ่ม {name} ... {i}", end="\r", flush=True)
-            time.sleep(1)
-        x, y = pg.position()
-        cfg["buttons"][name] = {"x": x, "y": y}
-        print(f"  บันทึก {name} = ({x}, {y})        ")
+        cfg["buttons"][name] = record_point(pg, name)
     save_config(cfg)
     print("\nบันทึกลง config.json แล้ว")
 

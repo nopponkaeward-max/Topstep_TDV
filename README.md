@@ -1,9 +1,9 @@
 # TradingView → คลิกปุ่ม TopstepX บนเครื่องตัวเอง
 
-สคริปต์ Python รันบน PC/Mac ของคุณ รับสัญญาณจาก TradingView แล้ว **คลิกปุ่ม Buy/Sell/Flatten บนหน้าจอ TopstepX ให้** ไม่ผ่านบริการตัวกลางและไม่ใช้ API
+สคริปต์ Python รันบน PC/Mac ของคุณ รับสัญญาณจาก TradingView แล้ว **กดคีย์ลัด (หรือคลิกปุ่ม) Buy/Sell/Flatten บนหน้าจอ TopstepX ให้** ไม่ผ่านบริการตัวกลางและไม่ใช้ API
 
 ```
-TradingView Alert ──(อีเมล หรือ Webhook)──▶ clicker.py ──pyautogui──▶ คลิกปุ่มบน TopstepX
+TradingView Alert ──(อีเมล หรือ Webhook)──▶ clicker.py ──pyautogui──▶ กดคีย์ลัด/คลิกปุ่มบน TopstepX
 ```
 
 ## ข้อควรระวังก่อนใช้
@@ -21,9 +21,24 @@ cp config.example.json config.json   # แล้วแก้ค่าในไ�
 - **macOS**: System Settings → Privacy & Security → Accessibility และ Screen Recording ให้ Terminal/IDE ที่รันสคริปต์
 - **Windows**: ถ้า TopstepX ถูกเปิดแบบ Administrator ให้รันสคริปต์แบบ Administrator ด้วย
 
+## เลือกโหมดทำงาน (`mode` ใน config.json)
+
+### `hotkey` (แนะนำ ค่าเริ่มต้น)
+ใช้ฟีเจอร์ Hotkeys ของ TopstepX เร็วและไม่ผูกกับตำแหน่งปุ่ม
+1. ใน TopstepX ตั้งคีย์ลัด Buy Market / Sell Market / Flatten (ถ้ามี) แล้วใส่ชุดเดียวกันใน `hotkeys` ของ config เช่น `["ctrl","alt","b"]`
+2. **อย่าใช้ Ctrl+B / Ctrl+S ล้วนๆ** เพราะเบราว์เซอร์ใช้เป็น Bookmarks / Save Page ได้ ให้เพิ่ม `Alt` หรือ `Shift` (เช่น Ctrl+Alt+B) และลองกดเองก่อนว่า TopstepX รับและเบราว์เซอร์ไม่แย่งคีย์
+3. คีย์ลัดทำงานเฉพาะตอนหน้า TopstepX **อยู่หน้าสุดและโฟกัสอยู่** สคริปต์จึงดึงหน้าต่างขึ้นมาให้ก่อนกดคีย์:
+   - macOS: ใส่ `focus_app` เป็นชื่อแอป เช่น `"Google Chrome"`
+   - Windows: ใส่ `focus_title` เป็นคำในชื่อหน้าต่าง เช่น `"TopstepX"` และ `pip install pygetwindow`
+   - ถ้าเคอร์เซอร์ค้างอยู่ในช่องพิมพ์ (เช่น ช่องจำนวนสัญญา) คีย์ลัดอาจไม่ทำงาน ใช้ `python clicker.py calibrate` บันทึก `focus_click` เป็นจุดว่างบนหน้าเว็บที่คลิกแล้วไม่เกิดอะไร
+4. ต้องเปิดแท็บ TopstepX เป็นแท็บที่แสดงอยู่ในหน้าต่างนั้น (สคริปต์ไม่สลับแท็บให้)
+
+### `click`
+คลิกตามพิกัดปุ่มที่บันทึกด้วย `calibrate` เหมาะถ้า TopstepX ไม่มีคีย์ลัดสำหรับปุ่มนั้น
+
 ## ขั้นตอน
-1. `python clicker.py calibrate` เปิด TopstepX ไว้ตำแหน่งที่ใช้เทรดจริง แล้ววางเมาส์บนปุ่ม buy / sell / flatten ตามที่สคริปต์บอก (ถ้ามีหน้าต่างยืนยันออเดอร์ ให้บันทึก `buy_confirm`/`sell_confirm` ด้วย)
-2. `python clicker.py test buy` ดูว่าคลิกถูกที่ (ตอน `dry_run: true` จะแค่พิมพ์ข้อความ ตั้งเป็น `false` เมื่อพร้อมทดสอบจริงบน Practice)
+1. (โหมด click) `python clicker.py calibrate` เปิด TopstepX ไว้ตำแหน่งที่ใช้เทรดจริง แล้ววางเมาส์บนปุ่ม buy / sell / flatten ตามที่สคริปต์บอก (ถ้ามีหน้าต่างยืนยันออเดอร์ ให้บันทึก `buy_confirm`/`sell_confirm` ด้วย)
+2. `python clicker.py test buy` ดูว่าทำงานถูกต้อง (ตอน `dry_run: true` จะแค่พิมพ์ข้อความ ตั้งเป็น `false` เมื่อพร้อมทดสอบจริงบน Practice)
 3. ตั้ง TradingView Alert (ดูด้านล่าง)
 4. `python clicker.py run` แล้วปล่อยทิ้งไว้
 
@@ -48,6 +63,8 @@ TradingView ส่งอีเมลเมื่อ Alert ทำงาน สค
 ## ปรับค่าใน config.json
 | ค่า | ความหมาย |
 |---|---|
+| `mode` | `hotkey` หรือ `click` |
+| `hotkeys` | คีย์ลัดของแต่ละ action ต้องตรงกับที่ตั้งใน TopstepX |
 | `dry_run` | `true` = ไม่คลิกจริง |
 | `cooldown_seconds` | ไม่รับสัญญาณซ้ำภายในกี่วินาที |
 | `max_clicks_per_hour` | เพดานจำนวนคลิกต่อชั่วโมง |
