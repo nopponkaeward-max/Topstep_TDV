@@ -1,0 +1,18 @@
+{
+  "source": "imap",
+  "secret": "เปลี่ยนเป็นรหัสลับยาวๆ ของคุณ",
+  "dry_run": true,
+  "cooldown_seconds": 5,
+  "max_clicks_per_hour": 20,
+  "confirm_delay_seconds": 0.4,
+  "host": "127.0.0.1",
+  "port": 8765,
+  "imap": {
+    "host": "imap.gmail.com",
+    "user": "you@gmail.com",
+    "app_password": "รหัสผ่านแอป 16 ตัวของ Gmail",
+    "sender": "noreply@tradingview.com",
+    "poll_seconds": 5
+  },
+  "buttons": {}
+}
