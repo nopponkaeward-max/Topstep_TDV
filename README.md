@@ -36,22 +36,11 @@ cp config.example.json config.json   # แล้วแก้ค่าในไ�
 ### `click`
 คลิกตามพิกัดปุ่มที่บันทึกด้วย `calibrate` เหมาะถ้า TopstepX ไม่มีคีย์ลัดสำหรับปุ่มนั้น
 
-## กันเปิดซ้ำ: ไม่เปิดออเดอร์ถ้ามีสถานะค้างอยู่ (`block_if_position_open`)
-ก่อนส่งคีย์ลัด/คลิกทุกครั้ง สคริปต์ถามสถานะจริงจาก **ProjectX API ของ Topstep** (อ่านอย่างเดียว ไม่ส่งออเดอร์ผ่าน API) ถ้ามีสถานะเปิดอยู่ จะข้ามสัญญาณนั้น
-- ต้องซื้อ **ProjectX API access** (add-on ของ Topstep) แล้วสร้าง API key
-- ใส่ `api.user`, `api.api_key` ใน config แล้วรัน `python clicker.py accounts` เพื่อดู `id` ของบัญชี ใส่เป็น `api.account_id`
-- ทดสอบด้วย `python clicker.py positions` (เปิดสถานะไว้ 1 ตัวแล้วดูว่าเห็นไหม)
-- **ถ้าเช็กไม่ได้ (เน็ตหลุด, API ล่ม, key ผิด) สคริปต์จะไม่เปิดออเดอร์** เลือกปลอดภัยไว้ก่อน
-- ตั้ง `block_if_position_open` เป็น `false` ถ้าไม่ต้องการใช้ ซึ่งจะเหลือแค่ cooldown กับเพดานต่อชั่วโมงกันซ้ำ
-- เช็กทั้งบัญชี ไม่แยกสัญญา ถ้ามีสถานะสัญญาใดค้างอยู่จะไม่เปิดสัญญาอื่น
-- มีช่องว่างสั้นๆ ระหว่างเช็กกับออเดอร์เข้าจริง cooldown ช่วยกันตรงนี้ จึงไม่ควรตั้ง `cooldown_seconds` ต่ำเกินไป
-
 ## ขั้นตอน
 1. (โหมด click) `python clicker.py calibrate` เปิด TopstepX ไว้ตำแหน่งที่ใช้เทรดจริง แล้ววางเมาส์บนปุ่ม buy / sell ตามที่สคริปต์บอก (ถ้ามีหน้าต่างยืนยันออเดอร์ ให้บันทึก `buy_confirm`/`sell_confirm` ด้วย)
-2. `python clicker.py accounts` และ `python clicker.py positions` เพื่อทดสอบ API
-3. `python clicker.py test buy` ดูว่าทำงานถูกต้อง (ตอน `dry_run: true` จะแค่พิมพ์ข้อความ ตั้งเป็น `false` เมื่อพร้อมทดสอบจริงบน Practice)
-4. ตั้ง TradingView Alert (ดูด้านล่าง)
-5. `python clicker.py run` แล้วปล่อยทิ้งไว้
+2. `python clicker.py test buy` ดูว่าทำงานถูกต้อง (ตอน `dry_run: true` จะแค่พิมพ์ข้อความ ตั้งเป็น `false` เมื่อพร้อมทดสอบจริงบน Practice)
+3. ตั้ง TradingView Alert (ดูด้านล่าง)
+4. `python clicker.py run` แล้วปล่อยทิ้งไว้
 
 ## เลือกวิธีรับสัญญาณ (`source` ใน config.json)
 

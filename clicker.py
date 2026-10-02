@@ -3,8 +3,6 @@
 
 ใช้งาน:
   python clicker.py calibrate     # (โหมด click) บันทึกตำแหน่งปุ่ม / จุดโฟกัส
-  python clicker.py accounts      # ดู account id สำหรับใส่ใน config
-  python clicker.py positions     # ดูสถานะที่เปิดอยู่ (ทดสอบ API)
   python clicker.py test buy      # ทดสอบกดคีย์ลัด/คลิก (ตาม dry_run)
   python clicker.py run           # เริ่มรับสัญญาณ
 """
@@ -16,7 +14,6 @@ import subprocess
 import sys
 import threading
 import time
-import urllib.request
 from email.header import decode_header
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -87,65 +84,6 @@ def send_hotkey(cfg, action):
     log(f"กดคีย์ลัด {'+'.join(keys)} ({action})")
 
 
-# ---------- เช็กสถานะค้าง (อ่านอย่างเดียว ไม่ส่งออเดอร์) ผ่าน ProjectX API ----------
-_token = {"value": None, "at": 0.0}
-
-
-def api_post(cfg, path, payload, auth=True):
-    ac = cfg["api"]
-    headers = {"Content-Type": "application/json", "Accept": "application/json"}
-    if auth:
-        headers["Authorization"] = f"Bearer {api_token(cfg)}"
-    req = urllib.request.Request(
-        ac.get("base_url", "https://api.topstepx.com") + path,
-        json.dumps(payload).encode(),
-        headers,
-    )
-    with urllib.request.urlopen(req, timeout=ac.get("timeout_seconds", 5)) as r:
-        return json.loads(r.read().decode())
-
-
-def api_token(cfg):
-    if _token["value"] and time.time() - _token["at"] < 20 * 3600:  # token มีอายุ ~24 ชม.
-        return _token["value"]
-    ac = cfg["api"]
-    data = api_post(cfg, "/api/Auth/loginKey", {"userName": ac["user"], "apiKey": ac["api_key"]}, auth=False)
-    if not data.get("success"):
-        raise RuntimeError(f"ล็อกอิน API ไม่สำเร็จ: {data.get('errorMessage') or data.get('errorCode')}")
-    _token.update(value=data["token"], at=time.time())
-    return _token["value"]
-
-
-def open_positions(cfg):
-    """คืนรายการสถานะที่เปิดอยู่ของบัญชี (ว่าง = ไม่มีสถานะ)"""
-    data = api_post(cfg, "/api/Position/searchOpen", {"accountId": cfg["api"]["account_id"]})
-    if not data.get("success"):
-        raise RuntimeError(f"อ่านสถานะไม่สำเร็จ: {data.get('errorMessage') or data.get('errorCode')}")
-    return [p for p in data.get("positions", []) if p.get("size", 0) != 0]
-
-
-def list_accounts(cfg):
-    data = api_post(cfg, "/api/Account/search", {"onlyActiveAccounts": True})
-    for a in data.get("accounts", []):
-        print(f"id={a.get('id')}  name={a.get('name')}  canTrade={a.get('canTrade')}")
-
-
-def blocked_by_position(cfg):
-    """คืนข้อความเหตุผลถ้าห้ามเปิดออเดอร์ ไม่งั้นคืน None (ถ้าเช็กไม่ได้ ถือว่าห้าม)"""
-    if not cfg.get("block_if_position_open", True):
-        return None
-    if not cfg.get("api", {}).get("api_key"):
-        return "ข้าม: เปิด block_if_position_open ไว้แต่ยังไม่ได้ใส่ api ใน config.json"
-    try:
-        pos = open_positions(cfg)
-    except Exception as e:  # noqa: BLE001 - เช็กไม่ได้ = ไม่เสี่ยงเปิดซ้ำ
-        return f"ข้าม: เช็กสถานะไม่ได้ ({e})"
-    if pos:
-        detail = ", ".join(f"{p.get('contractId')} size={p.get('size')}" for p in pos)
-        return f"ข้าม: มีสถานะเปิดอยู่แล้ว ({detail})"
-    return None
-
-
 def perform(cfg, action):
     """คลิกปุ่มตาม action คืน (ok, ข้อความ)"""
     global last_click
@@ -166,10 +104,6 @@ def perform(cfg, action):
         recent[:] = [t for t in recent if now - t < 3600]
         if len(recent) >= cfg.get("max_clicks_per_hour", 20):
             return False, "ข้าม: ครบจำนวนคลิกสูงสุดต่อชั่วโมงแล้ว"
-
-        reason = blocked_by_position(cfg)
-        if reason:
-            return False, reason
 
         if cfg.get("dry_run", True):
             what = "+".join(cfg["hotkeys"][action]) if hotkey_mode else f"({btn['x']}, {btn['y']})"
@@ -321,10 +255,6 @@ def main():
     cfg = load_config()
     if cmd == "calibrate":
         calibrate(cfg)
-    elif cmd == "accounts":
-        list_accounts(cfg)
-    elif cmd == "positions":
-        print(open_positions(cfg) or "ไม่มีสถานะเปิดอยู่")
     elif cmd == "test" and len(sys.argv) > 2:
         test(cfg, sys.argv[2])
     elif cmd == "run":

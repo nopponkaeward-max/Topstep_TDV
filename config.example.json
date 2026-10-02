@@ -30,13 +30,5 @@
   },
   "focus_app": "Google Chrome",
   "focus_title": "TopstepX",
-  "focus_click": null,
-  "block_if_position_open": true,
-  "api": {
-    "base_url": "https://api.topstepx.com",
-    "user": "ชื่อผู้ใช้ TopstepX",
-    "api_key": "ProjectX API key",
-    "account_id": 0,
-    "timeout_seconds": 5
-  }
+  "focus_click": null
 }
