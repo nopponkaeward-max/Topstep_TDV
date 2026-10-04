@@ -3,8 +3,7 @@
   "mode": "hotkey",
   "secret": "เปลี่ยนเป็นรหัสลับยาวๆ ของคุณ",
   "dry_run": true,
-  "cooldown_seconds": 5,
-  "max_clicks_per_hour": 20,
+  "cooldown_seconds": 2,
   "confirm_delay_seconds": 0.4,
   "host": "127.0.0.1",
   "port": 8765,
@@ -30,5 +29,8 @@
   },
   "focus_app": "Google Chrome",
   "focus_title": "TopstepX",
-  "focus_click": null
+  "focus_click": null,
+  "max_qty": 10,
+  "contracts_per_press": 1,
+  "press_delay_seconds": 0.3
 }

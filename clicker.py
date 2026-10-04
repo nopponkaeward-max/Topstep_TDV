@@ -3,7 +3,7 @@
 
 ใช้งาน:
   python clicker.py calibrate     # (โหมด click) บันทึกตำแหน่งปุ่ม / จุดโฟกัส
-  python clicker.py test buy      # ทดสอบกดคีย์ลัด/คลิก (ตาม dry_run)
+  python clicker.py test buy 2    # (qty ใส่หรือไม่ก็ได้) ทดสอบกดคีย์ลัด/คลิก (ตาม dry_run)
   python clicker.py run           # เริ่มรับสัญญาณ
 """
 import email
@@ -19,11 +19,10 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 CONFIG_PATH = Path(__file__).with_name("config.json")
-ACTIONS = ("buy", "sell")  # เปิดออเดอร์เท่านั้น ปิด/ออกเอง manual
+ACTIONS = ("buy", "sell")  # เข้า long = buy, ออก long = sell / เข้า short = sell, ออก short = buy
 
 lock = threading.Lock()
-last_click = 0.0
-recent = []  # เวลาคลิกย้อนหลัง ใช้จำกัดจำนวนครั้งต่อชั่วโมง
+last_by_action = {}  # เวลาล่าสุดที่ทำแต่ละ action ใช้กันสัญญาณซ้ำ (buy กับ sell แยกกัน)
 
 
 def log(msg):
@@ -74,21 +73,42 @@ def focus_window(cfg, pg):
     time.sleep(cfg.get("focus_delay_seconds", 0.15))
 
 
-def send_hotkey(cfg, action):
+def send_hotkey(cfg, action, presses=1):
     keys = cfg.get("hotkeys", {}).get(action)
     if not keys:
         raise RuntimeError(f"ยังไม่ได้ตั้ง hotkeys.{action} ใน config.json")
     pg = gui()
     focus_window(cfg, pg)
-    pg.hotkey(*keys)
-    log(f"กดคีย์ลัด {'+'.join(keys)} ({action})")
+    for i in range(presses):
+        pg.hotkey(*keys)
+        log(f"กดคีย์ลัด {'+'.join(keys)} ({action}) ครั้งที่ {i + 1}/{presses}")
+        if i < presses - 1:
+            time.sleep(cfg.get("press_delay_seconds", 0.3))
 
 
-def perform(cfg, action):
-    """คลิกปุ่มตาม action คืน (ok, ข้อความ)"""
-    global last_click
+def parse_qty(cfg, qty):
+    """qty จาก Alert -> (จำนวนครั้งที่ต้องกด, ข้อความ error) ถ้าไม่ส่ง qty มา กด 1 ครั้ง"""
+    if qty in (None, ""):
+        return 1, None
+    try:
+        q = float(qty)
+    except (TypeError, ValueError):
+        return 0, f"qty ไม่ถูกต้อง: {qty!r}"
+    if q < 1 or q != int(q):
+        return 0, f"qty ต้องเป็นจำนวนเต็มตั้งแต่ 1: {qty!r}"
+    if q > cfg.get("max_qty", 10):
+        return 0, f"ปฏิเสธ: qty={int(q)} เกิน max_qty={cfg.get('max_qty', 10)}"
+    per_press = max(1, int(cfg.get("contracts_per_press", 1)))
+    return -(-int(q) // per_press), None  # ปัดขึ้น
+
+
+def perform(cfg, action, qty=None):
+    """กดคีย์ลัด/คลิกปุ่มตาม action (ทำ qty ครั้งเมื่อกำหนด) คืน (ok, ข้อความ)"""
     if action not in ACTIONS:
         return False, f"action ไม่รู้จัก: {action}"
+    presses, err = parse_qty(cfg, qty)
+    if err:
+        return False, err
     hotkey_mode = cfg.get("mode", "hotkey") == "hotkey"
     btn = cfg.get("buttons", {}).get(action)
     if hotkey_mode:
@@ -99,30 +119,29 @@ def perform(cfg, action):
 
     with lock:
         now = time.time()
-        if now - last_click < cfg.get("cooldown_seconds", 5):
-            return False, "ข้าม: อยู่ในช่วง cooldown (กันสัญญาณซ้ำ)"
-        recent[:] = [t for t in recent if now - t < 3600]
-        if len(recent) >= cfg.get("max_clicks_per_hour", 20):
-            return False, "ข้าม: ครบจำนวนคลิกสูงสุดต่อชั่วโมงแล้ว"
+        if now - last_by_action.get(action, 0.0) < cfg.get("cooldown_seconds", 2):
+            return False, f"ข้าม: {action} ซ้ำภายใน cooldown (กันอีเมล/Webhook ส่งซ้ำ)"
 
         if cfg.get("dry_run", True):
             what = "+".join(cfg["hotkeys"][action]) if hotkey_mode else f"({btn['x']}, {btn['y']})"
-            log(f"[DRY RUN] จะ{'กดคีย์ลัด' if hotkey_mode else 'คลิก'} {action} -> {what} แต่ยังไม่ได้ทำจริง")
+            log(f"[DRY RUN] จะ{'กดคีย์ลัด' if hotkey_mode else 'คลิก'} {action} x{presses} -> {what} แต่ยังไม่ได้ทำจริง")
         elif hotkey_mode:
             try:
-                send_hotkey(cfg, action)
+                send_hotkey(cfg, action, presses)
             except Exception as e:  # noqa: BLE001
                 return False, f"กดคีย์ลัดไม่สำเร็จ: {e}"
         else:
             pg = gui()
-            click_point(pg, btn, action)
-            confirm = cfg["buttons"].get(f"{action}_confirm")
-            if confirm:  # ถ้า TopstepX มีหน้าต่างยืนยัน
-                time.sleep(cfg.get("confirm_delay_seconds", 0.4))
-                click_point(pg, confirm, f"{action} confirm")
-        last_click = now
-        recent.append(now)
-    return True, f"ทำ {action} แล้ว"
+            for i in range(presses):
+                click_point(pg, btn, action)
+                confirm = cfg["buttons"].get(f"{action}_confirm")
+                if confirm:  # ถ้า TopstepX มีหน้าต่างยืนยัน
+                    time.sleep(cfg.get("confirm_delay_seconds", 0.4))
+                    click_point(pg, confirm, f"{action} confirm")
+                if i < presses - 1:
+                    time.sleep(cfg.get("press_delay_seconds", 0.3))
+        last_by_action[action] = now
+    return True, f"ทำ {action} x{presses} แล้ว"
 
 
 # ---------- แหล่งสัญญาณ 1: Webhook ----------
@@ -142,7 +161,7 @@ def make_handler(cfg):
             if data.get("secret") != cfg["secret"]:
                 log("ปฏิเสธ: secret ไม่ถูกต้อง")
                 return self._reply(403, "forbidden")
-            ok, msg = perform(cfg, str(data.get("action", "")).lower())
+            ok, msg = perform(cfg, str(data.get("action", "")).lower(), data.get("qty"))
             log(msg)
             self._reply(200 if ok else 202, msg)
 
@@ -202,7 +221,7 @@ def run_imap(cfg):
                     if not data or data.get("secret") != cfg["secret"]:
                         log("ข้ามอีเมล: ไม่มี JSON หรือ secret ไม่ตรง")
                         continue
-                    ok, text = perform(cfg, str(data.get("action", "")).lower())
+                    ok, text = perform(cfg, str(data.get("action", "")).lower(), data.get("qty"))
                     log(text)
                 seen_startup = False
                 time.sleep(interval)
@@ -244,10 +263,10 @@ def calibrate(cfg):
     print("\nบันทึกลง config.json แล้ว")
 
 
-def test(cfg, action):
+def test(cfg, action, qty=None):
     print("จะคลิกใน 3 วินาที ย้ายหน้าต่าง TopstepX ให้พร้อม")
     time.sleep(3)
-    print(perform(cfg, action)[1])
+    print(perform(cfg, action, qty)[1])
 
 
 def main():
@@ -256,7 +275,7 @@ def main():
     if cmd == "calibrate":
         calibrate(cfg)
     elif cmd == "test" and len(sys.argv) > 2:
-        test(cfg, sys.argv[2])
+        test(cfg, sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None)
     elif cmd == "run":
         if cfg.get("source", "webhook") == "imap":
             run_imap(cfg)
