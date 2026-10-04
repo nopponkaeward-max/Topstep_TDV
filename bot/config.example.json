@@ -1,0 +1,13 @@
+{
+  "secret": "เปลี่ยนเป็นรหัสสุ่มยาวๆ อย่างน้อย 16 ตัว ให้ตรงกับ Indicator",
+  "dry_run": true,
+  "host": "127.0.0.1",
+  "port": 8765,
+  "max_qty": 10,
+  "max_age_seconds": 120,
+  "contracts_per_press": 1,
+  "press_delay_seconds": 0.3,
+  "focus_delay_seconds": 0.3,
+  "focus_app": "Google Chrome",
+  "focus_title": "TopstepX"
+}

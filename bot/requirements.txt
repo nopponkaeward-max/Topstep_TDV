@@ -1,0 +1,2 @@
+pyautogui
+pygetwindow; sys_platform == "win32"
