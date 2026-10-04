@@ -28,7 +28,6 @@ whSignalToken = input.string("", "OKX signalToken (โหมด OKX Signal Bot)"
 whSecret   = input.string("CHANGE_ME", "Webhook secret (โหมด Own bridge / TopstepX Clicker)", group="Webhook", display=display.none, tooltip="ต้องตรงกับ WEBHOOK_SECRET ของ bridge")
 whInstId   = input.string("BTC-USDT-SWAP", "OKX instId", group="Webhook", display=display.none, tooltip="เช่น BTC-USDT-SWAP (= OKX:BTCUSDT.P)")
 whSendSL   = input.bool(false, "Send SL (Low ของ brick สำหรับ Buy / High สำหรับ Sell)", group="Webhook", display=display.none)
-whLots     = input.int(1, "Lots per order (โหมด TopstepX Clicker)", minval=1, maxval=50, group="Webhook", display=display.none, tooltip="จำนวนสัญญาที่ส่งไปกับทุกสัญญาณ ทั้งเข้าและออก ต้องเท่ากันเสมอ\nบอทกดคีย์ลัดซ้ำตามจำนวนนี้ (ตั้งขนาดในแผงเทรด TopstepX เป็น 1 สัญญา)")
 bool   tsxMode  = whMode == "TopstepX Clicker"
 // โหมด TopstepX Clicker: บังคับ Immediate previous bar (ไม่กลับทิศใน brick เดียว) และถือได้ครั้งละ 1 ออเดอร์
 string prevMode = tsxMode ? "Immediate previous bar" : prevModeIn
@@ -232,7 +231,7 @@ if whClose != "" or whOpen != ""
     else if tsxMode
         // ส่ง "ปุ่มที่ต้องกดจริง": ออก long = sell, ออก short = buy / เข้า long = buy, เข้า short = sell
         // Immediate ไม่มี exit+entry ใน brick เดียว แต่ถ้าเกิดก็ส่งแยก 2 ข้อความ (exit ก่อน) id ต่างกัน
-        string tsxHead = '{"secret":"' + whSecret + '","qty":' + str.tostring(whLots) + ',"t":' + str.tostring(timenow)
+        string tsxHead = '{"secret":"' + whSecret + '","t":' + str.tostring(timenow)
         string tsxId   = str.tostring(time) + '-' + str.tostring(bar_index)
         if whClose != ""
             alert(tsxHead + ',"action":"' + (whClose == "buy" ? "sell" : "buy") + '","event":"exit","id":"' + tsxId + '-x"}', alert.freq_all)

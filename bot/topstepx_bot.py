@@ -2,8 +2,9 @@
 """รับ Webhook จาก TradingView (Renko Engulf, โหมด "TopstepX Clicker") แล้วกดคีย์ลัด Buy/Sell บน TopstepX
 
   python topstepx_bot.py run             # เริ่มรับสัญญาณ
-  python topstepx_bot.py test buy [qty]  # ทดสอบกดคีย์ (ตาม dry_run)
+  python topstepx_bot.py test buy        # ทดสอบกดคีย์ (ตาม dry_run)
 
+กดคีย์ลัด Buy/Sell 1 ครั้งต่อสัญญาณ (จำนวนสัญญาตั้งไว้ใน TopstepX แล้ว)
 ไม่ใช้ API ไม่ตรวจสถานะบัญชี: Indicator สั่งอะไร บอทกดตามนั้น
 """
 import json
@@ -21,7 +22,6 @@ HERE = Path(__file__).resolve().parent
 CONFIG_PATH = HERE / "config.json"
 LOG_PATH = HERE / "bot.log"
 ACTIONS = ("buy", "sell")
-MAX_QTY_HARD = 50  # ตรงกับ maxval ของ Lots per order ใน Pine
 
 # คีย์ลัดแนะนำ: Windows = Ctrl+Alt+B/S, macOS = Control+Shift+B/S (ดู README)
 DEFAULT_HOTKEYS = {
@@ -74,64 +74,53 @@ def focus_window(cfg):
     time.sleep(cfg.get("focus_delay_seconds", 0.3))
 
 
-def press(cfg, action, qty):
+def press(cfg, action):
     keys = cfg["hotkeys"][action]
-    pg = gui()
+    gui_ = gui()
     focus_window(cfg)
-    for i in range(qty):
-        pg.hotkey(*keys)
-        log(f"  กด {'+'.join(keys)} ({action}) {i + 1}/{qty}")
-        if i < qty - 1:
-            time.sleep(cfg.get("press_delay_seconds", 0.3))
+    gui_.hotkey(*keys)
+    log(f"  กด {'+'.join(keys)} ({action})")
 
 
-def execute(cfg, action, qty, event):
-    presses = -(-qty // max(1, int(cfg.get("contracts_per_press", 1))))  # ปัดขึ้น
+def execute(cfg, action, event):
     if cfg.get("dry_run", True):
-        log(f"[DRY RUN] {event} {action} qty={qty} -> จะกดคีย์ {'+'.join(cfg['hotkeys'][action])} x{presses} (ยังไม่ได้กดจริง)")
+        log(f"[DRY RUN] {event} {action} -> จะกดคีย์ {'+'.join(cfg['hotkeys'][action])} (ยังไม่ได้กดจริง)")
         return
-    log(f"{event} {action} qty={qty}")
+    log(f"{event} {action}")
     try:
-        press(cfg, action, presses)
+        press(cfg, action)
     except Exception as e:  # noqa: BLE001
-        log(f"!! กดไม่สำเร็จ ({event} {action} qty={qty}): {e}  ตรวจสถานะบัญชีด้วยตัวเอง")
+        log(f"!! กดไม่สำเร็จ ({event} {action}): {e}  ตรวจสถานะบัญชีด้วยตัวเอง")
 
 
 def worker(cfg):
     while True:
-        action, qty, event = jobs.get()
-        execute(cfg, action, qty, event)
+        action, event = jobs.get()
+        execute(cfg, action, event)
 
 
 def validate(cfg, data):
-    """คืน (action, qty, event, error)"""
+    """คืน (action, event, error)"""
     if data.get("secret") != cfg["secret"]:
-        return None, None, None, "secret ไม่ถูกต้อง"
+        return None, None, "secret ไม่ถูกต้อง"
     action = str(data.get("action", "")).lower()
     if action not in ACTIONS:
-        return None, None, None, f"action ไม่รู้จัก: {action!r}"
-    try:
-        qty = int(float(data.get("qty")))
-    except (TypeError, ValueError):
-        return None, None, None, f"qty ไม่ถูกต้อง: {data.get('qty')!r}"
+        return None, None, f"action ไม่รู้จัก: {action!r}"
     event = str(data.get("event", "entry")).lower()
     if event not in ("entry", "exit"):
-        return None, None, None, f"event ไม่รู้จัก: {event!r}"
-    limit = MAX_QTY_HARD if event == "exit" else cfg.get("max_qty", 10)  # คำสั่งออกไม่ถูกเพดาน max_qty บล็อก
-    if qty < 1 or qty > limit:
-        return None, None, None, f"qty={qty} เกินขอบเขต 1..{limit}"
+        return None, None, f"event ไม่รู้จัก: {event!r}"
     max_age = cfg.get("max_age_seconds", 120)
     t = data.get("t")
     if max_age and isinstance(t, (int, float)) and abs(time.time() * 1000 - t) > max_age * 1000:
-        return None, None, None, f"สัญญาณเก่าเกิน {max_age}s (อายุ {abs(time.time() * 1000 - t) / 1000:.0f}s) ไม่ทำ"
+        return None, None, f"สัญญาณเก่าเกิน {max_age}s (อายุ {abs(time.time() * 1000 - t) / 1000:.0f}s) ไม่ทำ"
     sig_id = str(data.get("id", ""))
     if not sig_id:
-        return None, None, None, "ไม่มี id"
+        return None, None, "ไม่มี id"
     with seen_lock:
         if sig_id in seen_ids:
-            return None, None, None, f"id ซ้ำ ({sig_id}) ข้าม"
+            return None, None, f"id ซ้ำ ({sig_id}) ข้าม"
         seen_ids.append(sig_id)
-    return action, qty, event, None
+    return action, event, None
 
 
 def make_handler(cfg):
@@ -151,11 +140,11 @@ def make_handler(cfg):
                 data = json.loads(self.rfile.read(n).decode("utf-8", "replace"))
             except ValueError:
                 return self._reply(400, "not json")
-            action, qty, event, err = validate(cfg, data if isinstance(data, dict) else {})
+            action, event, err = validate(cfg, data if isinstance(data, dict) else {})
             if err:
                 log(f"ปฏิเสธ: {err}")
                 return self._reply(403 if "secret" in err else 202, err)
-            jobs.put((action, qty, event))  # ตอบ TradingView ทันที (ต้องตอบภายใน 3 วินาที)
+            jobs.put((action, event))  # ตอบ TradingView ทันที (ต้องตอบภายใน 3 วินาที)
             self._reply(200, "queued")
 
         def log_message(self, *args):
@@ -174,12 +163,12 @@ def cmd_run(cfg):
     ThreadingHTTPServer((host, port), make_handler(cfg)).serve_forever()
 
 
-def cmd_test(cfg, action, qty):
+def cmd_test(cfg, action):
     if action not in ACTIONS:
-        sys.exit("ใช้: test buy|sell [qty]")
+        sys.exit("ใช้: test buy|sell")
     print("จะกดใน 3 วินาที สลับไปหน้า TopstepX ได้เลย")
     time.sleep(3)
-    execute(cfg, action, qty, "test")
+    execute(cfg, action, "test")
 
 
 def main():
@@ -189,7 +178,7 @@ def main():
         if cmd == "run":
             cmd_run(cfg)
         elif cmd == "test" and len(sys.argv) > 2:
-            cmd_test(cfg, sys.argv[2].lower(), int(sys.argv[3]) if len(sys.argv) > 3 else 1)
+            cmd_test(cfg, sys.argv[2].lower())
         else:
             sys.exit(__doc__)
     except KeyboardInterrupt:
