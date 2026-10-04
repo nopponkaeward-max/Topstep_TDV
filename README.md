@@ -82,6 +82,13 @@ TradingView เรียกเข้าเครื่องคุณตรง�
 3. สร้าง Alert: Condition = Indicator นี้ → **Any alert() function call**, Frequency ไม่ต้องตั้ง (โค้ดใช้ `freq_all`), Notifications → **Webhook URL** ใส่ URL อุโมงค์ (ปล่อยช่อง Message ไว้ ข้อความมาจาก `alert()`)
 4. รัน `python topstepx_bot.py run` ตอนเทรด
 
+## ทดสอบสายส่งด้วยปุ่มทดสอบใน Indicator
+ไม่ต้องรอสัญญาณจริง (ใช้ได้ตอนตลาดฟิวเจอร์สปิด ให้เปิดบนสัญลักษณ์ที่ราคาขยับ เช่น BTCUSD):
+1. ใน Indicator ตั้ง Alert mode = `TopstepX Clicker`, เปิด **ส่งสัญญาณทดสอบไปบอท**, เลือก **ทดสอบ action** (buy/sell)
+2. สร้าง Alert ใหม่: Condition = Indicator นี้ → **Any alert() function call**, Webhook URL = URL อุโมงค์
+3. เมื่อ Alert เริ่มทำงาน จะส่งสัญญาณทดสอบ **1 ครั้ง** บอทต้องขึ้น `รับ POST ...` แล้ว `entry buy` (หรือ `[DRY RUN] ...` ถ้า `dry_run: true`)
+4. **ลบ Alert ทดสอบทิ้ง และปิดตัวเลือกทดสอบ** ก่อนสร้าง Alert จริง
+
 ## ลำดับทดสอบก่อนใช้จริง
 1. `dry_run: true` ยิง Alert ทดสอบจาก TradingView ดู `bot/bot.log` ว่ารับ `entry`/`exit` ครบและ action ถูก
 2. `dry_run: false` บนบัญชี **Practice**: `python topstepx_bot.py test buy` ได้ออเดอร์ตามขนาดที่ตั้งไว้ไหม แล้ว `test sell` ปิดสถานะพอดีไหม

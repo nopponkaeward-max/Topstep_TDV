@@ -32,6 +32,9 @@ bool   tsxMode  = whMode == "TopstepX Clicker"
 // โหมด TopstepX Clicker: บังคับ Immediate previous bar (ไม่กลับทิศใน brick เดียว) และถือได้ครั้งละ 1 ออเดอร์
 string prevMode = tsxMode ? "Immediate previous bar" : prevModeIn
 bool   oneOnly  = tsxMode ? true : oneOrderOnly
+testSend   = input.bool(false, "ส่งสัญญาณทดสอบไปบอท (ใช้ตอนสร้าง Alert ทดสอบเท่านั้น)", group="Webhook", display=display.none,
+     tooltip="เฉพาะโหมด TopstepX Clicker: เมื่อเปิด จะส่งสัญญาณทดสอบ 1 ครั้งทันทีที่สคริปต์/Alert เริ่มทำงานแบบ realtime เพื่อเช็กสายส่ง TradingView → Webhook → บอท\nอย่าเปิดไว้ใน Alert จริง! ให้สร้าง Alert ทดสอบแยก แล้วลบทิ้งหลังทดสอบ (ถ้าบอท dry_run=false บอทจะกดคีย์จริง)")
+testAct    = input.string("buy", "ทดสอบ action", options=["buy", "sell"], group="Webhook", display=display.none)
 
 showTickLine = input.bool(true, "แสดงเส้นแนวตั้งสีทอง High-Low ของ brick ที่กำลังก่อตัว (ถัดจากแท่งล่าสุด)", group="Display & Stats", display=display.none,
      tooltip="ยอดราคาสูง/ต่ำสุดที่วิ่งไปถึงตั้งแต่ brick ล่าสุดปิด (นับจาก tick สดตั้งแต่เปิดกราฟ) วาดเป็นเส้นแนวตั้งที่ช่องถัดจากแท่งล่าสุด")
@@ -244,6 +247,13 @@ if whClose != "" or whOpen != ""
              ',"px":' + str.tostring(close, "#.########") + ',"r":' + str.tostring(math.max(high - low, syminfo.mintick), "#.########") +
              (na(whSl) ? '' : ',"sl":' + str.tostring(whSl, "#.########")) + '}'
         alert(msg, alert.freq_all)
+
+// ---- ส่งสัญญาณทดสอบ 1 ครั้ง (varip = จำค่าข้าม tick ใน realtime กันยิงซ้ำ; รีเซ็ตเมื่อสคริปต์โหลดใหม่/Alert เริ่มใหม่) ----
+varip bool testSent = false
+if tsxMode and testSend and barstate.isrealtime and not testSent
+    testSent := true
+    alert('{"secret":"' + whSecret + '","t":' + str.tostring(timenow) + ',"action":"' + testAct + '","event":"entry","id":"test-' + str.tostring(timenow) + '"}', alert.freq_once_per_bar)
+    label.new(bar_index, high, "TEST " + testAct, style=label.style_label_down, color=color.new(color.orange, 20), textcolor=color.white, size=size.small)
 
 // alertcondition: ใช้ได้โดยไม่ต้องเลือก "Any alert() function call" — ตั้ง Frequency เป็น Once Per Bar (ไม่ใช่ Once Per Bar Close บน Renko)
 alertcondition(buySig,    "Renko Engulf Buy",       "Renko Engulf: BUY {{ticker}} @ {{close}}")
