@@ -3,8 +3,5 @@
   "dry_run": true,
   "host": "127.0.0.1",
   "port": 8765,
-  "max_age_seconds": 120,
-  "focus_delay_seconds": 0.3,
-  "focus_app": "Google Chrome",
-  "focus_title": "TopstepX"
+  "max_age_seconds": 120
 }
