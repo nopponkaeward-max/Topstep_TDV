@@ -132,13 +132,17 @@ def make_handler(cfg):
             self.wfile.write(text.encode())
 
         def do_GET(self):
+            log(f"GET จาก {self.client_address[0]} (เช็กว่าเชื่อมต่อถึง)")
             self._reply(200, "ok")
 
         def do_POST(self):
             n = min(int(self.headers.get("Content-Length", 0)), 4096)
+            body = self.rfile.read(n).decode("utf-8", "replace")
+            log(f"รับ POST จาก {self.client_address[0]} ({len(body)} ตัวอักษร)")
             try:
-                data = json.loads(self.rfile.read(n).decode("utf-8", "replace"))
+                data = json.loads(body)
             except ValueError:
+                log(f"ปฏิเสธ: ข้อความไม่ใช่ JSON: {body[:100]!r}")
                 return self._reply(400, "not json")
             action, event, err = validate(cfg, data if isinstance(data, dict) else {})
             if err:
