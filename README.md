@@ -1,9 +1,9 @@
-# TopstepX Clicker: Renko Engulf (TradingView) → กดคีย์ลัด Buy/Sell บน TopstepX
+# TopstepX Clicker: Renko Engulf (TradingView) → คลิกปุ่ม Buy/Sell บน TopstepX
 
-บอทรันบน PC/Mac ของคุณ รับ Webhook จาก TradingView แล้ว **กดคีย์ลัด Buy/Sell Market ในหน้า TopstepX** ไม่ใช้ API ไม่ผ่านบริการตัวกลาง และ **ไม่ตรวจสถานะบัญชี** Indicator สั่งอะไร บอทกดตามนั้น
+บอทรันบน PC/Mac ของคุณ รับ Webhook จาก TradingView แล้ว **คลิกปุ่ม Buy/Sell Market ในหน้า TopstepX** (หรือกดคีย์ลัด ถ้าคีย์ลัดของ TopstepX ใช้งานได้บนเครื่องคุณ) ไม่ใช้ API ไม่ผ่านบริการตัวกลาง และ **ไม่ตรวจสถานะบัญชี** Indicator สั่งอะไร บอทกดตามนั้น
 
 ```
-Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTTPS) → bot/topstepx_bot.py → กดคีย์ลัดบน TopstepX
+Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTTPS) → bot/topstepx_bot.py → คลิกปุ่มบน TopstepX
 ```
 
 ## ไฟล์
@@ -15,10 +15,10 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 
 | เหตุการณ์ใน Indicator | บอทกด |
 |---|---|
-| เข้า long | Buy 1 ครั้ง |
-| ออก long (เจอ brick ขาลง) | Sell 1 ครั้ง |
-| เข้า short | Sell 1 ครั้ง |
-| ออก short (เจอ brick ขาขึ้น) | Buy 1 ครั้ง |
+| เข้า long | คลิก Buy 1 ครั้ง |
+| ออก long (เจอ brick ขาลง) | คลิก Sell 1 ครั้ง |
+| เข้า short | คลิก Sell 1 ครั้ง |
+| ออก short (เจอ brick ขาขึ้น) | คลิก Buy 1 ครั้ง |
 
 บอทกด **1 ครั้งต่อสัญญาณ** จำนวนสัญญาตั้งไว้ใน TopstepX แล้ว (ไม่มี qty ใน Indicator/บอท) เข้า-ออกใช้ขนาดเดียวกัน จึงปิดสถานะพอดี
 
@@ -32,28 +32,24 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 - **บอทไม่รู้สถานะจริง** ถ้าสัญญาณหลุด (เน็ตหลุด, เครื่องหลับ, บอทดับ) สถานะจะค้างหรือเกิน ต้องเฝ้าดูและปิดเอง
 - **Indicator ไม่มี stop loss** ถือจนเจอ brick ตรงข้าม ตั้ง bracket ในแผงเทรด TopstepX หรือเฝ้าดู และระวัง Daily Loss Limit
 - ราคาเข้าจริงไม่เท่าราคาปิด brick ในตาราง Stats (มี latency ของ Alert + การกด)
-- เครื่องต้องเปิดอยู่ ไม่หลับ ไม่ล็อกจอ และหน้า TopstepX ต้องเป็นแท็บที่แสดงอยู่ **และโฟกัสอยู่** (เปิดไว้เฉยๆ แต่มีหน้าต่างอื่นบังหรือโฟกัสอยู่ที่อื่น คีย์ลัดไม่ทำงาน)
+- เครื่องต้องเปิดอยู่ ไม่หลับ ไม่ล็อกจอ และหน้า TopstepX ต้องเป็นแท็บที่แสดงอยู่ **อยู่หน้าสุด ไม่มีหน้าต่างอื่นบังปุ่ม Buy/Sell** และอยู่ตำแหน่ง/ขนาด/zoom เดิมตอน calibrate (ขยับแล้วคลิกพลาด)
+- **log ที่ขึ้นว่าคลิก/กดแล้ว ไม่ได้ยืนยันว่าออเดอร์เข้า** ดูผลที่หน้า Positions ของ TopstepX เอง
 - **เริ่มด้วย `dry_run: true` และบัญชี Practice เสมอ**
 
-## 1) ตั้งคีย์ลัดใน TopstepX
-บอทตั้งคีย์ลัดในบัญชีคุณให้เองไม่ได้ ต้องตั้งเองในหน้า Hotkeys ของ TopstepX ตามนี้:
+## 1) เลือกโหมด (`mode` ใน `bot/config.json`)
 
-| | Buy Market | Sell Market |
-|---|---|---|
-| **Windows** | `Ctrl + Alt + B` | `Ctrl + Alt + S` |
-| **macOS** | `Control + Shift + B` | `Control + Shift + S` |
+### `click` (ค่าเริ่มต้น แนะนำถ้าคีย์ลัด TopstepX ใช้ไม่ได้)
+บอทคลิกปุ่ม Buy/Sell บนหน้าจอตามพิกัดที่บันทึกด้วย `calibrate` ไม่ขึ้นกับคีย์ลัดและภาษาของคีย์บอร์ด
+- ตั้งขนาดออเดอร์ (และ stop/target ถ้าต้องการ) ในแผงเทรด TopstepX ให้พร้อมก่อน ปุ่ม Buy/Sell ส่งออเดอร์ตามค่าที่ตั้งไว้ ณ ตอนนั้น
+- ถ้า TopstepX ถามยืนยันก่อนส่งออเดอร์ `calibrate` จะบันทึกปุ่มยืนยันให้ด้วย (ตอบ `y`)
+- **หลัง calibrate ห้ามขยับ ย่อ ขยาย หรือซูมหน้าต่าง TopstepX** และอย่าเปลี่ยนความละเอียดจอ (บอทเช็กขนาดจอ ถ้าเปลี่ยนจะไม่ยอมคลิกและให้ calibrate ใหม่) ถ้าจัดวางแผงเทรดใหม่ ต้อง calibrate ใหม่
+- บอทย้ายเมาส์ไปคลิกแล้วย้ายกลับตำแหน่งเดิม (ปิดได้ด้วย `"restore_mouse": false`)
 
-เหตุผล: เลี่ยงคีย์ที่เบราว์เซอร์/ระบบใช้
-- Windows: `Ctrl+B`, `Ctrl+S`, `Ctrl+Shift+B` ชนกับ Bookmarks/Save/แถบบุ๊กมาร์ก แต่ `Ctrl+Alt+B/S` ไม่มีใน Chrome/Edge/Firefox
-- macOS: เลี่ยง `Option` เพราะ Option+ตัวอักษรพิมพ์สัญลักษณ์พิเศษ (เช่น Option+B = ∫) ทำให้หน้าเว็บอ่านคีย์ผิด และ Control+Shift ไม่ชนกับคีย์ลัดของ macOS/Chrome
-- ใช้ 3 ปุ่มรวมกัน กันเผลอกดเอง เพราะกดแล้วส่งออเดอร์จริง
-
-ถ้า TopstepX ไม่ยอมรับชุดนี้ ให้เปลี่ยน แล้วแก้ `hotkeys` ใน `bot/config.json` ให้ตรง เช่น `"hotkeys": {"buy": ["ctrl","alt","b"], "sell": ["ctrl","alt","s"]}`
-
-**สำคัญ:**
-- ตั้งขนาดออเดอร์ (และ stop/target ถ้าต้องการ) ในแผงเทรด TopstepX ให้พร้อมก่อน บอทกดคีย์ลัดครั้งเดียว ออเดอร์จะออกตามค่าที่ตั้งไว้ ณ ตอนนั้น
-- **เปิด Keyboard layout เป็นภาษาอังกฤษ** ตอนบอททำงาน ถ้าเป็นไทย ตัวอักษรที่ส่งอาจเป็นอักษรไทย คีย์ลัดจะไม่ทำงาน
-- กดด้วยมือทดสอบก่อนว่าส่งออเดอร์ได้จริง บนบัญชี Practice
+### `hotkey`
+กดคีย์ลัด Buy/Sell Market (ตั้ง `"mode": "hotkey"`) ใช้ได้เมื่อ TopstepX รับคีย์ลัดบนเครื่องคุณ (กดมือแล้วออเดอร์เข้า)
+- ตั้งคีย์ลัดในหน้า Hotkeys ของ TopstepX: Windows `Ctrl+Alt+B / Ctrl+Alt+S`, macOS `Control+Shift+B / Control+Shift+S` แล้วให้ `hotkeys` ใน config ตรงกัน
+- ต้องเปิด Keyboard layout เป็นภาษาอังกฤษ (ถ้าเป็นไทย ตัวอักษรที่ส่งไม่ตรง คีย์ลัดไม่ทำงาน)
+- ทดสอบว่าคีย์ถึงเบราว์เซอร์ไหมด้วย `bot/keytest.html`
 
 ## 2) ติดตั้งบอท
 ```bash
@@ -63,11 +59,13 @@ cp config.example.json config.json
 ```
 แก้ `config.json`:
 - `secret` รหัสสุ่มอย่างน้อย 16 ตัว (ใช้ค่าเดียวกันใน Indicator) บอทไม่ยอมรัน ถ้ายังเป็นค่าตัวอย่าง
-- **หน้าต่างโฟกัส:** ค่าเริ่มต้นบอท **ไม่ดึงหน้าต่างขึ้นมา** กดคีย์ใส่หน้าต่างที่โฟกัสอยู่ตอนนั้น จึงต้องให้หน้า TopstepX อยู่หน้าสุดและโฟกัสตลอดเวลาเทรด (ถ้าไปใช้โปรแกรมอื่น คีย์จะตกที่โปรแกรมนั้น ออเดอร์ไม่ออก) ถ้าอยากให้บอทดึงหน้าต่างให้ ใส่ macOS: `"focus_app": "Google Chrome"` / Windows: `"focus_title": "TopstepX"` (Windows ต้อง `pip install pygetwindow`, ปรับ `focus_delay_seconds` ได้)
+- **หน้าต่างโฟกัส:** แนะนำให้ใส่ macOS: `"focus_app": "Google Chrome"` (หรือ `"Safari"`) / Windows: `"focus_title": "TopstepX"` (Windows ต้อง `pip install pygetwindow`) บอทจะดึงเบราว์เซอร์ขึ้นหน้าสุดก่อนคลิก/กดคีย์ (ต้องให้แท็บ TopstepX เป็นแท็บที่แสดงอยู่ในหน้าต่างนั้น) ถ้าไม่ใส่ บอททำงานกับหน้าจอตามที่เป็นอยู่ ถ้าหน้า TopstepX ไม่ได้อยู่หน้าสุด จะคลิกผิดที่
 - macOS ให้สิทธิ์ Accessibility แก่ Terminal ที่รันบอท (System Settings → Privacy & Security)
 - ปล่อย `dry_run: true` ไว้ก่อน
 
-ทดสอบ: `python topstepx_bot.py test buy` (ตอน dry-run จะแค่พิมพ์ข้อความ)
+**โหมด click:** เปิด TopstepX ไว้ตำแหน่งที่ใช้เทรดจริง แล้วรัน `python3 topstepx_bot.py calibrate` ทำตามที่บอกบนจอ (วางเมาส์บนปุ่ม Buy แล้วปุ่ม Sell ภายใน 5 วินาทีต่อปุ่ม) ค่าจะถูกบันทึกลง `config.json`
+
+ทดสอบ: `python3 topstepx_bot.py test buy` (ตอน dry-run จะแค่พิมพ์ข้อความว่าจะคลิกที่ไหน ตั้ง `dry_run: false` บนบัญชี Practice เพื่อทดสอบคลิกจริง)
 
 ## 3) อุโมงค์ Webhook
 TradingView เรียกเข้าเครื่องคุณตรงๆ ไม่ได้ ต้องมี URL HTTPS สาธารณะชี้มาที่ `127.0.0.1:8765`:
@@ -80,7 +78,7 @@ TradingView เรียกเข้าเครื่องคุณตรง�
 1. กราฟ **Renko** ของ TradingView (Chart type → Renko) ด้วยสัญลักษณ์ฟิวเจอร์สที่เทรดบน TopstepX
 2. ใส่ `pine/renko_engulf_v6.pine` ตั้งค่า **Alert mode = `TopstepX Clicker`**, **Webhook secret** ให้ตรง `config.json`
 3. สร้าง Alert: Condition = Indicator นี้ → **Any alert() function call**, Frequency ไม่ต้องตั้ง (โค้ดใช้ `freq_all`), Notifications → **Webhook URL** ใส่ URL อุโมงค์ (ปล่อยช่อง Message ไว้ ข้อความมาจาก `alert()`)
-4. รัน `python topstepx_bot.py run` ตอนเทรด
+4. รัน `python3 topstepx_bot.py run` ตอนเทรด
 
 ## ทดสอบสายส่งด้วยปุ่มทดสอบใน Indicator
 ไม่ต้องรอสัญญาณจริง (ใช้ได้ตอนตลาดฟิวเจอร์สปิด ให้เปิดบนสัญลักษณ์ที่ราคาขยับ เช่น BTCUSD):
@@ -91,16 +89,20 @@ TradingView เรียกเข้าเครื่องคุณตรง�
 
 ## ลำดับทดสอบก่อนใช้จริง
 1. `dry_run: true` ยิง Alert ทดสอบจาก TradingView ดู `bot/bot.log` ว่ารับ `entry`/`exit` ครบและ action ถูก
-2. `dry_run: false` บนบัญชี **Practice**: `python topstepx_bot.py test buy` ได้ออเดอร์ตามขนาดที่ตั้งไว้ไหม แล้ว `test sell` ปิดสถานะพอดีไหม
+2. `dry_run: false` บนบัญชี **Practice**: `python3 topstepx_bot.py test buy` ได้ออเดอร์ตามขนาดที่ตั้งไว้ไหม แล้ว `test sell` ปิดสถานะพอดีไหม (ทดสอบตอนที่ TopstepX เห็นปุ่มครบ ไม่มีหน้าต่างอื่นบัง)
 3. รอครบ 1 รอบเข้า-ออกจริง ตรวจว่าปิดสถานะหมด
 4. ค่อยพิจารณาบัญชีจริง
 
 ## ค่าใน `bot/config.json`
 | ค่า | ความหมาย |
 |---|---|
-| `dry_run` | `true` = ไม่กดจริง |
+| `mode` | `click` (ค่าเริ่มต้น) หรือ `hotkey` |
+| `dry_run` | `true` = ไม่ทำจริง |
+| `buttons`, `screen_size` | ตำแหน่งปุ่มและขนาดจอ บันทึกโดย `calibrate` (โหมด click) |
+| `restore_mouse` | ย้ายเมาส์กลับที่เดิมหลังคลิก (ค่าเริ่มต้น true) |
+| `confirm_delay_seconds` | รอก่อนคลิกปุ่มยืนยัน (ถ้ามี) |
 | `max_age_seconds` | ทิ้งสัญญาณที่เก่าเกินกี่วินาที (0 = ไม่เช็ก, ต้องให้นาฬิกาเครื่องตรงเวลา) |
-| `focus_app` / `focus_title` | ไม่ใส่ = ไม่ดึงหน้าต่าง (ค่าเริ่มต้น) ใส่ = ดึงหน้าต่างขึ้นมาก่อนกดคีย์ |
-| `hotkeys` | ไม่ใส่ = ใช้ค่าแนะนำตามระบบปฏิบัติการ |
+| `focus_app` / `focus_title` | ดึงหน้าต่างเบราว์เซอร์ขึ้นมาก่อนคลิก/กดคีย์ macOS ใส่ชื่อแอป เช่น `"Google Chrome"` / Windows ใส่คำในชื่อหน้าต่าง **แนะนำให้ใส่** ไม่ใส่ = ไม่ดึงหน้าต่าง |
+| `hotkeys` | (โหมด hotkey) ไม่ใส่ = ใช้ค่าแนะนำตามระบบปฏิบัติการ |
 
 หยุดฉุกเฉิน: ลากเมาส์ไปมุมซ้ายบนของจอ หรือปิดบอท (Ctrl+C)

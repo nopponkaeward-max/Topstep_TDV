@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""รับ Webhook จาก TradingView (Renko Engulf, โหมด "TopstepX Clicker") แล้วกดคีย์ลัด Buy/Sell บน TopstepX
+"""รับ Webhook จาก TradingView (Renko Engulf, โหมด "TopstepX Clicker") แล้วคลิกปุ่ม (หรือกดคีย์ลัด) Buy/Sell บน TopstepX
 
-  python topstepx_bot.py run             # เริ่มรับสัญญาณ
-  python topstepx_bot.py test buy        # ทดสอบกดคีย์ (ตาม dry_run)
+  python3 topstepx_bot.py calibrate      # บันทึกตำแหน่งปุ่ม Buy/Sell บนหน้าจอ (โหมด click)
+  python3 topstepx_bot.py run            # เริ่มรับสัญญาณ
+  python3 topstepx_bot.py test buy       # ทดสอบกด (ตาม dry_run)
 
-กดคีย์ลัด Buy/Sell 1 ครั้งต่อสัญญาณ (จำนวนสัญญาตั้งไว้ใน TopstepX แล้ว)
+โหมด click (ค่าเริ่มต้น): คลิกปุ่ม Buy/Sell ตามพิกัดที่บันทึกไว้ / โหมด hotkey: กดคีย์ลัด
+กด 1 ครั้งต่อสัญญาณ (จำนวนสัญญาตั้งไว้ใน TopstepX แล้ว)
 ไม่ใช้ API ไม่ตรวจสถานะบัญชี: Indicator สั่งอะไร บอทกดตามนั้น
 """
 import json
@@ -45,7 +47,9 @@ def load_config():
     if not CONFIG_PATH.exists():
         sys.exit("ไม่พบ bot/config.json ให้คัดลอกจาก config.example.json ก่อน")
     cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    cfg.setdefault("hotkeys", DEFAULT_HOTKEYS.get(platform.system(), DEFAULT_HOTKEYS["Windows"]))
+    cfg.setdefault("mode", "click")
+    if cfg["mode"] == "hotkey":
+        cfg.setdefault("hotkeys", DEFAULT_HOTKEYS.get(platform.system(), DEFAULT_HOTKEYS["Windows"]))
     return cfg
 
 
@@ -93,15 +97,55 @@ def press(cfg, action):
     log(f"  ส่งคีย์ {'+'.join(keys)} ({action}) แล้ว (ยืนยันผลที่หน้า TopstepX เอง)")
 
 
+def click_button(cfg, action):
+    buttons = cfg.get("buttons", {})
+    btn = buttons.get(action)
+    if not btn:
+        raise RuntimeError(f"ยังไม่ได้บันทึกตำแหน่งปุ่ม {action} (รัน python3 topstepx_bot.py calibrate)")
+    gui_ = gui()
+    saved = cfg.get("screen_size")
+    if saved and tuple(saved) != tuple(gui_.size()):
+        raise RuntimeError(f"ขนาดหน้าจอเปลี่ยนไป (ตอน calibrate {saved}, ตอนนี้ {list(gui_.size())}) ให้ calibrate ใหม่")
+    focus_window(cfg)
+    origin = gui_.position()
+
+    def click(pt, label):
+        gui_.moveTo(pt["x"], pt["y"], duration=0.15)
+        time.sleep(0.05)
+        gui_.mouseDown()
+        time.sleep(0.05)
+        gui_.mouseUp()
+        log(f"  คลิก {label} ที่ ({pt['x']}, {pt['y']})")
+
+    click(btn, action)
+    confirm = buttons.get(f"{action}_confirm")
+    if confirm:  # ถ้า TopstepX มีหน้าต่างยืนยันออเดอร์
+        time.sleep(cfg.get("confirm_delay_seconds", 0.5))
+        click(confirm, f"{action} confirm")
+    if cfg.get("restore_mouse", True):
+        gui_.moveTo(origin.x, origin.y)
+    log("  (ยืนยันผลที่หน้า TopstepX เอง: log นี้บอกแค่ว่าคลิกแล้ว)")
+
+
+def describe(cfg, action):
+    if cfg["mode"] == "hotkey":
+        return f"กดคีย์ {'+'.join(cfg['hotkeys'][action])}"
+    btn = cfg.get("buttons", {}).get(action)
+    return f"คลิกปุ่ม {action} ที่ ({btn['x']}, {btn['y']})" if btn else f"คลิกปุ่ม {action} (ยังไม่ได้ calibrate)"
+
+
 def execute(cfg, action, event):
     if cfg.get("dry_run", True):
-        log(f"[DRY RUN] {event} {action} -> จะกดคีย์ {'+'.join(cfg['hotkeys'][action])} (ยังไม่ได้กดจริง)")
+        log(f"[DRY RUN] {event} {action} -> จะ{describe(cfg, action)} (ยังไม่ได้ทำจริง)")
         return
     log(f"{event} {action}")
     try:
-        press(cfg, action)
+        if cfg["mode"] == "hotkey":
+            press(cfg, action)
+        else:
+            click_button(cfg, action)
     except Exception as e:  # noqa: BLE001
-        log(f"!! กดไม่สำเร็จ ({event} {action}): {e}  ตรวจสถานะบัญชีด้วยตัวเอง")
+        log(f"!! ทำไม่สำเร็จ ({event} {action}): {e}  ตรวจสถานะบัญชีด้วยตัวเอง")
 
 
 def worker(cfg):
@@ -172,19 +216,52 @@ def cmd_run(cfg):
     secret = str(cfg.get("secret", ""))
     if len(secret) < 16 or secret in ("CHANGE_ME",) or secret.startswith("เปลี่ยน"):
         sys.exit("ตั้ง secret ใน config.json เป็นรหัสสุ่มอย่างน้อย 16 ตัวอักษรก่อน (ใช้ค่าเดียวกับใน Indicator)")
+    if cfg["mode"] == "click":
+        missing = [a for a in ACTIONS if not cfg.get("buttons", {}).get(a)]
+        if missing:
+            sys.exit(f"ยังไม่ได้บันทึกตำแหน่งปุ่ม {', '.join(missing)} ให้รัน: python3 topstepx_bot.py calibrate")
     if not cfg.get("focus_app") and not cfg.get("focus_title"):
-        log("คำเตือน: ไม่ได้ตั้ง focus_app/focus_title บอทจะกดคีย์ใส่หน้าต่างที่โฟกัสอยู่ตอนนั้น "
-            "ถ้าไม่ใช่หน้า TopstepX คีย์จะไม่ถึงและออเดอร์ไม่ออก (แม้ log จะบอกว่าส่งคีย์แล้ว)")
+        log("คำเตือน: ไม่ได้ตั้ง focus_app/focus_title บอทจะทำงานกับหน้าจอ/หน้าต่างตามที่เป็นอยู่ตอนนั้น "
+            "ถ้าหน้า TopstepX ไม่ได้อยู่หน้าสุด คลิก/คีย์จะไปผิดที่ (แม้ log จะบอกว่าทำแล้ว)")
     threading.Thread(target=worker, args=(cfg,), daemon=True).start()
     host, port = cfg.get("host", "127.0.0.1"), cfg.get("port", 8765)
-    log(f"รอ Webhook ที่ http://{host}:{port}/  dry_run={cfg.get('dry_run', True)}  hotkeys={cfg['hotkeys']}")
+    log(f"รอ Webhook ที่ http://{host}:{port}/  dry_run={cfg.get('dry_run', True)}  mode={cfg['mode']}  "
+        f"buy: {describe(cfg, 'buy')} / sell: {describe(cfg, 'sell')}")
     ThreadingHTTPServer((host, port), make_handler(cfg)).serve_forever()
+
+
+def record_point(pg, name):
+    for i in range(5, 0, -1):
+        print(f"  วางเมาส์บน {name} ... {i}   ", end="\r", flush=True)
+        time.sleep(1)
+    p = pg.position()
+    print(f"  บันทึก {name} = ({p.x}, {p.y})          ")
+    return {"x": int(p.x), "y": int(p.y)}
+
+
+def cmd_calibrate(cfg):
+    pg = gui()
+    print("เปิด TopstepX ให้อยู่ตำแหน่ง/ขนาดหน้าต่าง/zoom เดียวกับตอนเทรดจริง และเห็นปุ่ม Buy/Sell ครบ")
+    print("(หลังจากนี้ห้ามขยับ/ย่อ/ซูมหน้าต่าง ไม่งั้นต้อง calibrate ใหม่)")
+    buttons = {}
+    for name in ACTIONS:
+        input(f"\nกด Enter แล้วย้ายเมาส์ไปวางบนปุ่ม {name.upper()} ของ TopstepX (มีเวลา 5 วินาที) ")
+        buttons[name] = record_point(pg, name)
+    if input("\nTopstepX มีหน้าต่างให้กดยืนยันก่อนส่งออเดอร์ไหม? (y/N) ").strip().lower() == "y":
+        for name in ACTIONS:
+            input(f"กดปุ่ม {name.upper()} เพื่อเปิดหน้าต่างยืนยันค้างไว้ แล้วกด Enter ที่นี่ จากนั้นวางเมาส์บนปุ่มยืนยัน ")
+            buttons[f"{name}_confirm"] = record_point(pg, f"{name} confirm")
+    cfg["buttons"] = buttons
+    cfg["screen_size"] = list(pg.size())
+    save = {k: v for k, v in cfg.items()}
+    CONFIG_PATH.write_text(json.dumps(save, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"\nบันทึกลง {CONFIG_PATH.name} แล้ว ทดสอบด้วย: python3 topstepx_bot.py test buy (ตั้ง dry_run เป็น false ก่อน)")
 
 
 def cmd_test(cfg, action):
     if action not in ACTIONS:
         sys.exit("ใช้: test buy|sell")
-    print("จะกดใน 3 วินาที สลับไปหน้า TopstepX ได้เลย")
+    print("จะทำงานใน 3 วินาที สลับไปหน้า TopstepX ได้เลย")
     time.sleep(3)
     execute(cfg, action, "test")
 
@@ -195,6 +272,8 @@ def main():
     try:
         if cmd == "run":
             cmd_run(cfg)
+        elif cmd == "calibrate":
+            cmd_calibrate(cfg)
         elif cmd == "test" and len(sys.argv) > 2:
             cmd_test(cfg, sys.argv[2].lower())
         else:
