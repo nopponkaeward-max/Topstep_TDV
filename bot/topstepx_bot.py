@@ -78,8 +78,19 @@ def press(cfg, action):
     keys = cfg["hotkeys"][action]
     gui_ = gui()
     focus_window(cfg)
-    gui_.hotkey(*keys)
-    log(f"  กด {'+'.join(keys)} ({action})")
+    # กดทีละปุ่มแล้วค้างไว้สั้นๆ แทน hotkey() ที่กด-ปล่อยเร็วจนเว็บบางตัวจับคีย์ไม่ทัน
+    hold = cfg.get("key_hold_seconds", 0.1)
+    pressed = []
+    try:
+        for k in keys:
+            gui_.keyDown(k)
+            pressed.append(k)
+            time.sleep(0.03)
+        time.sleep(hold)
+    finally:
+        for k in reversed(pressed):
+            gui_.keyUp(k)
+    log(f"  ส่งคีย์ {'+'.join(keys)} ({action}) แล้ว (ยืนยันผลที่หน้า TopstepX เอง)")
 
 
 def execute(cfg, action, event):
@@ -161,6 +172,9 @@ def cmd_run(cfg):
     secret = str(cfg.get("secret", ""))
     if len(secret) < 16 or secret in ("CHANGE_ME",) or secret.startswith("เปลี่ยน"):
         sys.exit("ตั้ง secret ใน config.json เป็นรหัสสุ่มอย่างน้อย 16 ตัวอักษรก่อน (ใช้ค่าเดียวกับใน Indicator)")
+    if not cfg.get("focus_app") and not cfg.get("focus_title"):
+        log("คำเตือน: ไม่ได้ตั้ง focus_app/focus_title บอทจะกดคีย์ใส่หน้าต่างที่โฟกัสอยู่ตอนนั้น "
+            "ถ้าไม่ใช่หน้า TopstepX คีย์จะไม่ถึงและออเดอร์ไม่ออก (แม้ log จะบอกว่าส่งคีย์แล้ว)")
     threading.Thread(target=worker, args=(cfg,), daemon=True).start()
     host, port = cfg.get("host", "127.0.0.1"), cfg.get("port", 8765)
     log(f"รอ Webhook ที่ http://{host}:{port}/  dry_run={cfg.get('dry_run', True)}  hotkeys={cfg['hotkeys']}")

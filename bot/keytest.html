@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><title>Key test</title>
+<style>body{font:16px system-ui;margin:24px;background:#111;color:#eee}#log{white-space:pre-wrap;font:14px ui-monospace,monospace;margin-top:16px}
+.ok{color:#40d89e}.hint{color:#aaa}</style></head><body>
+<h2>ทดสอบว่าคีย์ที่บอทกดมาถึงหน้าเว็บไหม</h2>
+<p class="hint">เปิดหน้านี้ในเบราว์เซอร์ตัวเดียวกับที่ใช้ TopstepX แล้วคลิกในหน้านี้ 1 ครั้ง จากนั้นกดคีย์ลัดด้วยมือ หรือรัน <code>python3 topstepx_bot.py test buy</code> (ตั้ง <code>focus_app</code> ไว้ หรือสลับมาหน้านี้ภายใน 3 วินาที)</p>
+<div id="log">รอรับคีย์...</div>
+<script>
+const log=document.getElementById('log');let n=0;
+addEventListener('keydown',e=>{
+  if(['Control','Shift','Alt','Meta'].includes(e.key))return;
+  const mods=[e.ctrlKey&&'Ctrl',e.shiftKey&&'Shift',e.altKey&&'Alt',e.metaKey&&'Cmd'].filter(Boolean).join('+')||'(ไม่มี modifier)';
+  n++;log.innerHTML=(n==1?'':log.innerHTML+'\n')+'<span class="ok">'+new Date().toLocaleTimeString()+'  key="'+e.key+'"  code='+e.code+'  modifiers='+mods+'</span>';
+  e.preventDefault();
+});
+</script></body></html>
