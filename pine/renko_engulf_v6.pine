@@ -20,6 +20,15 @@ allowShort = input.bool(true, "Enable Sell", group="Entry Strategy", display=dis
 oneOrderOnly = input.bool(true, "One order at a time (เปิดได้ครั้งละ 1 ออเดอร์)", group="Entry Strategy", display=display.none,
      tooltip="เปิด = ถือได้ครั้งละ 1 ออเดอร์ สัญญาณใหม่ระหว่างถืออยู่จะถูกข้าม\nปิด = เจอสัญญาณทิศเดียวกันซ้ำจะเปิดออเดอร์เพิ่ม (ซ้อนไม้) แล้วปิดทั้งหมดเมื่อเจอแท่งตรงข้าม")
 
+exitMode   = input.string("Opposite brick", "Exit mode", options=["Opposite brick", "N same-color boxes"], group="Exit Strategy", display=display.none,
+     tooltip="Opposite brick = ออกเมื่อเจอ box สีตรงข้ามกับทิศที่ถือ (แบบเดิม)\nN same-color boxes = ออกเมื่อมี box สีเดียวกับทิศที่ถือเกิดขึ้นครบ N แท่ง (นับหลังแท่งที่เข้า)")
+exitN      = input.int(3, "N = จำนวน box สีเดียวกับทิศออเดอร์", minval=1, maxval=50, group="Exit Strategy", display=display.none,
+     tooltip="ใช้เมื่อ Exit mode = N same-color boxes\nBuy: นับ box ขาขึ้น / Sell: นับ box ขาลง ออกที่แท่งที่ N")
+exitOnOpp  = input.bool(true, "ออกเมื่อเจอ box สีตรงข้ามด้วย (แล้วแต่อย่างไหนมาก่อน)", group="Exit Strategy", display=display.none,
+     tooltip="เปิด (แนะนำ) = ถ้าเจอ box สีตรงข้ามก่อนครบ N จะออกทันที เหมือนเป็น stop\nปิด = ไม่ออกเมื่อเจอสีตรงข้าม รอจนนับ box สีเดียวกันครบ N (นับสะสมไม่ต้องติดกัน) เสี่ยงถือสถานะสวนทางนาน ไม่มี stop")
+countEntry = input.bool(false, "นับ box ที่เข้าออเดอร์เป็น box ที่ 1", group="Exit Strategy", display=display.none,
+     tooltip="ปิด = เริ่มนับจากแท่งถัดจากแท่งที่เข้า (N=3 → ออกที่แท่งที่ 3 หลังเข้า)\nเปิด = แท่งที่เข้านับเป็น 1 (N=3 → ออกที่แท่งที่ 2 หลังเข้า)")
+
 showTradePath  = input.bool(true, "Show Trade Path Lines (เส้นโยงเปิด→ปิด)", group="Display & Stats", display=display.none)
 showEntryLine  = input.bool(true, "Show Entry Price Line + Label", group="Display & Stats", display=display.none)
 whMode     = input.string("Text only (pop-up)", "Alert mode (Any alert() function call)", options=["Text only (pop-up)", "OKX Signal Bot", "Own bridge server", "TopstepX Clicker"], group="Webhook", display=display.none,
@@ -160,10 +169,19 @@ var array<float> oRisk = array.new_float()
 var array<int>   oBar  = array.new_int()
 var array<int>   oTime = array.new_int()
 
+var int sameCnt = 0                  // จำนวน box สีเดียวกับทิศออเดอร์ที่นับได้ตั้งแต่เข้า (ใช้กับ Exit mode = N same-color boxes)
+
 float exitPx = close
 bool engineOn  = barstate.isconfirmed   // Renko: brick ที่กำลังก่อตัว (live) ยังไม่ confirmed และเปลี่ยนทุก tick → ตัดสินเฉพาะ brick ที่เกิดจริงแล้ว
-bool exitLong  = engineOn and pos ==  1 and bear
-bool exitShort = engineOn and pos == -1 and bull
+bool oppOK     = exitMode == "Opposite brick" or exitOnOpp   // ออกเมื่อเจอ box สีตรงข้ามไหม
+bool sameColor = (pos == 1 and bull) or (pos == -1 and bear)
+bool nHit      = false
+if engineOn and pos != 0 and sameColor   // pos != 0 ตรงนี้ = แท่งหลังแท่งที่เข้า (การเข้าถูกประมวลผลต่ำกว่านี้ในแท่งเดียวกัน)
+    sameCnt += 1
+    nHit := exitMode == "N same-color boxes" and sameCnt >= exitN
+bool exitLong  = engineOn and pos ==  1 and ((bear and oppOK) or nHit)
+bool exitShort = engineOn and pos == -1 and ((bull and oppOK) or nHit)
+bool exitedNow = exitLong or exitShort
 
 if exitLong or exitShort
     color closeCol = na
@@ -189,15 +207,18 @@ if exitLong or exitShort
     array.clear(oPx), array.clear(oRisk), array.clear(oBar), array.clear(oTime)
     pos := 0
     entryPrice := na
+    sameCnt := 0
 
 // เข้าออเดอร์ (ถ้าเพิ่งออกในแท่งนี้ = กลับทิศได้ทันที)
 // One order at a time = เปิดอยู่ 1 ออเดอร์ สัญญาณใหม่ถูกข้ามจนกว่าจะปิด / ปิด = ซ้อนออเดอร์ทิศเดียวกันได้
-bool canOpen = not oneOnly or array.size(oPx) == 0
+// โหมด TopstepX Clicker: ไม่เปิดใหม่ใน brick เดียวกับที่เพิ่งออก (กันบอทกดซื้อ-ขายพร้อมกันและลำดับสัญญาณสลับ)
+bool canOpen = (not oneOnly or array.size(oPx) == 0) and not (tsxMode and exitedNow)
 bool buySig  = engineOn and allowLong  and engulfBull and canOpen
 bool sellSig = engineOn and allowShort and engulfBear and canOpen
 
 if buySig or sellSig
     pos := buySig ? 1 : -1
+    sameCnt := countEntry ? 1 : 0
     entryPrice := close
     array.push(oPx, close)
     array.push(oRisk, math.max(high - low, syminfo.mintick))
@@ -685,7 +706,7 @@ f_drawSettings() =>
     table.cell(settingsTable, 0, 0, "◆  SETTINGS SUMMARY", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
     table.cell(settingsTable, 1, 0, "", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
     string[] k = array.from("Compare with", "Tolerance", "Buy", "Sell", "Exit rule", "1R Basis", "Stats TZ")
-    string[] v = array.from(prevMode, str.tostring(tol, "#.##"), allowLong ? "ON" : "OFF", allowShort ? "ON" : "OFF", "Opposite brick", "Renko brick", statsTz)
+    string[] v = array.from(prevMode, str.tostring(tol, "#.##"), allowLong ? "ON" : "OFF", allowShort ? "ON" : "OFF", (exitMode == "Opposite brick" ? "Opposite brick" : str.tostring(exitN) + " same-color" + (exitOnOpp ? " / opposite" : "")), "Renko brick", statsTz)
     for i = 0 to 6
         color rb = i % 2 == 0 ? lxRowA : lxRowB
         table.cell(settingsTable, 0, i + 1, array.get(k, i), text_color=lxMuted, text_size=size.tiny, bgcolor=rb, text_halign=text.align_left)
