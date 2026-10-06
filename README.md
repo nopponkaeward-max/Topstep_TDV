@@ -81,18 +81,62 @@ cp config.example.json config.json
 
 ทดสอบ: `python3 topstepx_bot.py test buy` (ตอน dry-run จะแค่พิมพ์ข้อความว่าจะคลิกที่ไหน ตั้ง `dry_run: false` บนบัญชี Practice เพื่อทดสอบคลิกจริง)
 
-## 3) อุโมงค์ Webhook
-TradingView เรียกเข้าเครื่องคุณตรงๆ ไม่ได้ ต้องมี URL HTTPS สาธารณะชี้มาที่ `127.0.0.1:8765`:
-- **ngrok:** สมัครฟรีแล้วใช้โดเมนคงที่ของบัญชี เช่น `ngrok http --url=ชื่อของคุณ.ngrok-free.app 8765` (ดูคำสั่งล่าสุดในเอกสาร ngrok)
-- **Cloudflare Tunnel:** ถ้ามีโดเมนของตัวเอง ใช้ named tunnel ได้ (quick tunnel ที่ไม่มีโดเมน URL เปลี่ยนทุกครั้งที่เปิด ไม่เหมาะ)
-- TradingView รับ Webhook เฉพาะพอร์ต 80/443 และต้องเปิด 2FA กับแผนที่รองรับ Webhook
-- ใครรู้ URL + secret สั่งเปิดออเดอร์ในเครื่องคุณได้ เก็บ secret เป็นความลับ บอทกัน secret ผิด สัญญาณซ้ำ (id) และสัญญาณเก่าเกิน `max_age_seconds` (ค่าเริ่มต้น 120 วินาที)
+## 3) อุโมงค์ Webhook (ngrok)
+TradingView เรียกเข้าเครื่องคุณตรงๆ ไม่ได้ ต้องมี URL HTTPS สาธารณะที่ส่งต่อมาที่บอท (`127.0.0.1:8765`) เราใช้ **ngrok**
+
+### ติดตั้งและตั้งค่าครั้งแรก (ทำครั้งเดียว)
+1. สมัครบัญชีฟรีที่ <https://ngrok.com> แล้วเข้าหน้า Dashboard
+2. ติดตั้ง ngrok
+   - macOS: `brew install ngrok` (หรือโหลดจากหน้า Setup ของ ngrok)
+   - Windows: โหลดจากหน้า Setup ของ ngrok หรือ `winget install ngrok.ngrok`
+3. คัดลอกคำสั่ง authtoken จากหน้า Dashboard (หัวข้อ Your Authtoken) แล้วรันครั้งเดียว:
+   ```bash
+   ngrok config add-authtoken <โทเค็นของคุณ>
+   ```
+   ขึ้นข้อความ `Authtoken saved to configuration file` แปลว่าสำเร็จ
+4. (แนะนำ) ดูโดเมนคงที่ฟรีของบัญชีที่หน้า Dashboard → Domains เช่น `ชื่อของคุณ.ngrok-free.dev` ใช้โดเมนนี้ใน Alert จะได้ไม่ต้องแก้ URL ทุกครั้งที่เปิดใหม่
+
+### เปิดอุโมงค์ทุกครั้งที่จะเทรด
+ใช้ **Terminal แยกอีกหน้าต่าง** จากหน้าต่างบอท (เปิดค้างทั้งสองหน้าต่างตลอดเวลาที่เทรด):
+
+1. **หน้าต่างที่ 1: บอท**
+   ```bash
+   cd bot
+   python3 topstepx_bot.py run
+   ```
+2. **หน้าต่างที่ 2: ngrok** (พอร์ตต้องตรงกับ `port` ใน `config.json` ค่าเริ่มต้น 8765)
+   ```bash
+   ngrok http 8765
+   ```
+   ถ้ามีโดเมนคงที่ของบัญชี: `ngrok http --url=https://ชื่อของคุณ.ngrok-free.dev 8765` (ดูรูปแบบคำสั่งล่าสุดในเอกสาร ngrok)
+3. ดูบรรทัด **Forwarding** ในหน้าจอ ngrok เช่น
+   ```
+   Session Status   online
+   Forwarding       https://ชื่อของคุณ.ngrok-free.dev -> http://localhost:8765
+   ```
+   URL ที่ขึ้นต้น `https://` คือ **Webhook URL** ที่ใส่ใน Alert ของ TradingView (ไม่ต้องใส่ `/` ท้ายหรือพอร์ต)
+4. **เช็กว่าอุโมงค์ใช้ได้:** เปิด URL นั้นใน browser (ถ้าขึ้นหน้าเตือนของ ngrok ให้กด Visit Site) ต้องเห็นคำว่า `ok` และหน้าต่างบอทขึ้น `GET จาก ...`
+5. เมื่อ TradingView ยิงมา จะเห็นแถว `POST /  200 OK` ในหน้าจอ ngrok และบอทขึ้น `รับ POST ...`
+   - `403 Forbidden` = `secret` ไม่ตรงกัน (ใน Indicator กับ `bot/config.json`)
+   - `202` = บอทรับแต่ไม่ทำ (สัญญาณซ้ำ, เก่าเกิน `max_age_seconds` หรือ action ไม่ถูกต้อง ดูเหตุผลใน log ของบอท)
+   - หน้าเว็บ `http://127.0.0.1:4040` ของ ngrok แสดงรายละเอียดทุกคำขอ (มี `secret` อยู่ในข้อความ อย่าแชร์ภาพหน้านี้)
+
+### เมื่อเลิกเทรด
+กด `Ctrl+C` ที่หน้าต่าง ngrok และหน้าต่างบอท อุโมงค์ที่เปิดทิ้งไว้ คือช่องให้คนภายนอกยิงเข้าเครื่องคุณได้ (มีแค่ `secret` กันไว้)
+
+### ข้อควรรู้
+- **ต้องเปิดบอทและ ngrok พร้อมกันตลอดเวลาที่ Alert ทำงาน** ถ้า ngrok หรือบอทหยุด สัญญาณที่ TradingView ส่งมาจะหายไป (TradingView ไม่ส่งซ้ำ) ถ้ากำลังถือสถานะอยู่ สัญญาณออกจะไม่มา
+- Alert ที่ยิงตอนอุโมงค์ยังไม่พร้อมจะส่งไม่ถึง ต้องเปิดอุโมงค์ให้เสร็จก่อนสร้าง/เริ่ม Alert
+- เครื่องหลับหรือรีสตาร์ท อุโมงค์ก็หยุด ต้องเปิดใหม่ (ปิดโหมดหลับระหว่างเทรด)
+- TradingView รับ Webhook เฉพาะ URL `https://` (พอร์ต 443) และต้องเปิด 2FA กับแผนที่รองรับ Webhook ไม่ใช่ปัญหาของ ngrok
+- ใครรู้ URL + `secret` สั่งเปิดออเดอร์ในเครื่องคุณได้ เก็บ `secret` เป็นความลับ บอทกัน `secret` ผิด, สัญญาณซ้ำ (id) และสัญญาณเก่าเกิน `max_age_seconds` (ค่าเริ่มต้น 120 วินาที)
+- ทางเลือกอื่น: **Cloudflare Tunnel** (ถ้ามีโดเมนของตัวเอง ใช้ named tunnel ได้ quick tunnel ที่ไม่มีโดเมน URL เปลี่ยนทุกครั้ง ไม่เหมาะ)
 
 ## 4) ตั้ง Indicator และ Alert
 1. กราฟ **Renko** ของ TradingView (Chart type → Renko) ด้วยสัญลักษณ์ฟิวเจอร์สที่เทรดบน TopstepX
 2. ใส่ `pine/renko_engulf_v6.pine` ตั้งค่า **Alert mode = `TopstepX Clicker`**, **Webhook secret** ให้ตรง `config.json`
 3. สร้าง Alert: Condition = Indicator นี้ → **Any alert() function call**, Frequency ไม่ต้องตั้ง (โค้ดใช้ `freq_all`), Notifications → **Webhook URL** ใส่ URL อุโมงค์ (ปล่อยช่อง Message ไว้ ข้อความมาจาก `alert()`)
-4. รัน `python3 topstepx_bot.py run` ตอนเทรด
+4. ตอนเทรด เปิด **บอท** (`python3 topstepx_bot.py run`) และ **ngrok** (`ngrok http 8765`) ค้างไว้ทั้งสองหน้าต่าง (ดูหัวข้อ 3)
 
 ## ทดสอบสายส่งด้วยปุ่มทดสอบใน Indicator
 ไม่ต้องรอสัญญาณจริง (ใช้ได้ตอนตลาดฟิวเจอร์สปิด ให้เปิดบนสัญลักษณ์ที่ราคาขยับ เช่น BTCUSD):
