@@ -19,9 +19,9 @@ allowLong  = input.bool(true, "Enable Buy",  group="Entry Strategy", display=dis
 allowShort = input.bool(true, "Enable Sell", group="Entry Strategy", display=display.none)
 oneOrderOnly = input.bool(true, "One order at a time (เปิดได้ครั้งละ 1 ออเดอร์)", group="Entry Strategy", display=display.none,
      tooltip="เปิด = ถือได้ครั้งละ 1 ออเดอร์ สัญญาณใหม่ระหว่างถืออยู่จะถูกข้าม\nปิด = เจอสัญญาณทิศเดียวกันซ้ำจะเปิดออเดอร์เพิ่ม (ซ้อนไม้) แล้วปิดทั้งหมดเมื่อเจอแท่งตรงข้าม")
-revEnable  = input.bool(true, "Reversal entry (กลับตัวหลังแท่งสีเดียวกันติดกัน แล้วแท่งตรงข้ามครอบ)", group="Entry Strategy", display=display.none,
-     tooltip="เพิ่มเงื่อนไขเข้าอีกแบบ (ใช้ร่วมกับ Engulf เดิม ข้อไหนเข้าก่อนก็เข้า)\nBuy: มีแท่งแดงติดกันก่อนหน้า >= N แท่ง แล้วเกิดแท่งเขียวที่ High สูงกว่า และ Low ต่ำกว่า ของแท่งแดงล่าสุด\nSell: ตรงข้าม (แท่งเขียวติดกัน >= N แล้วแท่งแดงที่ High สูงกว่า และ Low ต่ำกว่าแท่งเขียวล่าสุด)\nExit / TP / SL ใช้ค่าเดิมทั้งหมด")
-revMin     = input.int(4, "Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N)", minval=1, maxval=50, group="Entry Strategy", display=display.none)
+entryMode  = input.string("Engulf", "Entry mode", options=["Engulf", "Reversal", "Engulf + Reversal"], group="Entry Strategy", display=display.none,
+     tooltip="Engulf = เข้าเมื่อแท่งสีเดียวกันครอบ High-Low ของแท่งก่อนหน้า (แบบเดิม)\nReversal = Buy: มีแท่งแดงติดกันก่อนหน้า >= N แท่ง แล้วเกิดแท่งเขียวที่ High สูงกว่า และ Low ต่ำกว่าแท่งแดงล่าสุด / Sell: ตรงข้าม (N ตั้งที่ช่องถัดไป)\nEngulf + Reversal = ใช้ทั้งสองแบบ ข้อไหนเกิดก่อนก็เข้า\nExit / TP / SL ใช้ค่าเดิมทุกโหมด")
+revMin     = input.int(4, "Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อ Entry mode มี Reversal", minval=1, maxval=50, group="Entry Strategy", display=display.none)
 
 exitMode   = input.string("Opposite brick", "Exit mode", options=["Opposite brick", "N same-color boxes"], group="Exit Strategy", display=display.none,
      tooltip="Opposite brick = ออกเมื่อเจอ box สีตรงข้ามกับทิศที่ถือ (แบบเดิม)\nN same-color boxes = ออกเมื่อมี box สีเดียวกับทิศที่ถือเกิดขึ้นครบ N แท่ง (นับหลังแท่งที่เข้า)")
@@ -146,8 +146,10 @@ refBullL = prevMode == "Last Bull/Bear" ? lastBullL : (bull[1] ? low[1]  : na)
 refBearH = prevMode == "Last Bull/Bear" ? lastBearH : (bear[1] ? high[1] : na)
 refBearL = prevMode == "Last Bull/Bear" ? lastBearL : (bear[1] ? low[1]  : na)
 
-engulfBull = bull and not na(refBullH) and high >= refBullH - tol and low <= refBullL + tol
-engulfBear = bear and not na(refBearH) and high >= refBearH - tol and low <= refBearL + tol
+bool useEngulf = entryMode != "Reversal"
+bool useRev    = entryMode != "Engulf"
+engulfBull = useEngulf and bull and not na(refBullH) and high >= refBullH - tol and low <= refBullL + tol
+engulfBear = useEngulf and bear and not na(refBearH) and high >= refBearH - tol and low <= refBearL + tol
 
 // Reversal entry: แท่งสีเดียวกันติดกัน >= revMin แท่ง แล้วแท่งสีตรงข้ามที่ High สูงกว่า และ Low ต่ำกว่า "แท่งล่าสุด" (= แท่งก่อนหน้าทันที)
 // redRun / grnRun = จำนวนแท่งแดง/เขียวติดกัน (var อัปเดตทีละแท่ง) ส่วน redPrev / grnPrev = ค่าของ "แท่งก่อนหน้า" ก่อนอัปเดตแท่งนี้
@@ -157,8 +159,8 @@ int redPrev = redRun
 int grnPrev = grnRun
 redRun := bear ? redRun + 1 : 0
 grnRun := bull ? grnRun + 1 : 0
-bool revBull = revEnable and bull and redPrev >= revMin and high > high[1] and low < low[1]
-bool revBear = revEnable and bear and grnPrev >= revMin and high > high[1] and low < low[1]
+bool revBull = useRev and bull and redPrev >= revMin and high > high[1] and low < low[1]
+bool revBear = useRev and bear and grnPrev >= revMin and high > high[1] and low < low[1]
 
 if bull
     lastBullH := high
