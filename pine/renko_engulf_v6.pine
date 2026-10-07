@@ -7,7 +7,7 @@
 //   1R = ขนาดแท่ง Renko (High-Low) ของแท่งที่เข้าออเดอร์
 // ============================================================================
 
-indicator("RENKO-ENGULF-v6", shorttitle="RNK-ENG-v6", overlay=true, max_lines_count=500, max_labels_count=500)
+indicator("RENKO-ENGULF-v6", shorttitle="RNK-ENGREV", overlay=true, max_lines_count=500, max_labels_count=500)
 
 // ==========================================
 // --- 1. INPUTS ---
