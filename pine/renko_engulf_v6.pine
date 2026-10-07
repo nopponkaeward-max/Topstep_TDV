@@ -4,7 +4,7 @@
 //   BUY  : แท่ง Renko Bullish ที่ High-Low ครอบคลุมแท่ง Bullish ก่อนหน้า → Exit เมื่อเจอแท่ง Bearish
 //   SELL : เงื่อนไขตรงข้าม (Bearish ครอบคลุม Bearish ก่อนหน้า)          → Exit เมื่อเจอแท่ง Bullish
 //   Visual / ตาราง Stats อิงจาก NOPPON-GOLD1-1 (Luxe theme, Stats / Monthly / Weekday / Daily / Settings)
-//   1R = ขนาดแท่ง Renko (High-Low) ของแท่งที่เข้าออเดอร์
+//   1R = ระยะ 2 box จากราคาเข้า (2 × ขนาด box = 2 × |close-open| ของ brick ที่เข้า) ไม่ใช้ High-Low ของ brick
 // ============================================================================
 
 indicator("RENKO-ENGULF-v6", shorttitle="RNK-ENGREV", overlay=true, max_lines_count=500, max_labels_count=500)
@@ -173,7 +173,7 @@ if bear
 // --- 4. TRADE ENGINE ---
 // ==========================================
 var array<bool>  resIsWin = array.new_bool()
-var array<float> resR     = array.new_float()   // ผลลัพธ์เป็น R (1R = ขนาดแท่ง Renko ตอนเข้า)
+var array<float> resR     = array.new_float()   // ผลลัพธ์เป็น R (1R = 2 box จากราคาเข้า)
 var array<float> resPts   = array.new_float()   // ผลลัพธ์เป็นราคา (points) มีเครื่องหมาย
 var array<int>   resTime  = array.new_int()     // เวลาที่เปิดออเดอร์
 var array<bool>  resIsBuy = array.new_bool()
@@ -188,6 +188,7 @@ var array<int>   oTime = array.new_int()
 var int sameCnt = 0                  // จำนวน box สีเดียวกับทิศออเดอร์ที่นับได้ตั้งแต่เข้า (ใช้กับ Exit mode = N same-color boxes)
 
 float exitPx = close
+float riskNow  = math.max(2.0 * math.abs(close - open), syminfo.mintick)   // 1R = 2 box (box = ตัว brick |close-open|) ใช้ตอนเข้าออเดอร์
 bool engineOn  = barstate.isconfirmed   // Renko: brick ที่กำลังก่อตัว (live) ยังไม่ confirmed และเปลี่ยนทุก tick → ตัดสินเฉพาะ brick ที่เกิดจริงแล้ว
 bool oppOK     = exitMode == "Opposite brick" or exitOnOpp   // ออกเมื่อเจอ box สีตรงข้ามไหม
 bool sameColor = (pos == 1 and bull) or (pos == -1 and bear)
@@ -242,7 +243,7 @@ if buySig or sellSig
     sameCnt := countEntry ? 1 : 0
     entryPrice := close
     array.push(oPx, close)
-    array.push(oRisk, math.max(high - low, syminfo.mintick))
+    array.push(oRisk, riskNow)
     array.push(oBar, bar_index)
     array.push(oTime, time)
     color sideCol = buySig ? color.green : color.red
@@ -286,7 +287,7 @@ if whClose != "" or whOpen != ""
         float whSl = whSendSL and whOpen != "" ? (buySig ? low : high) : na
         string msg = '{"v":1,"secret":"' + whSecret + '","id":"' + str.tostring(time) + '-' + str.tostring(bar_index) + '","t":' + str.tostring(timenow) +
              ',"instId":"' + whInstId + '","close":"' + whClose + '","open":"' + whOpen + '"' +
-             ',"px":' + str.tostring(close, "#.########") + ',"r":' + str.tostring(math.max(high - low, syminfo.mintick), "#.########") +
+             ',"px":' + str.tostring(close, "#.########") + ',"r":' + str.tostring(riskNow, "#.########") +
              (na(whSl) ? '' : ',"sl":' + str.tostring(whSl, "#.########")) + '}'
         alert(msg, alert.freq_all)
 
@@ -440,7 +441,7 @@ f_drawStats() =>
     string posStr = pos == 1 ? "BUY @ " + str.tostring(entryPrice, format.mintick) : pos == -1 ? "SELL @ " + str.tostring(entryPrice, format.mintick) : "Flat"
 
     table.cell(statsTable, 0, 0,  "◆  RENKO ENGULF PERFORMANCE", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
-    table.cell(statsTable, 0, 1,  periodStr + "  ·  1R = Renko brick", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg)
+    table.cell(statsTable, 0, 1,  periodStr + "  ·  1R = 2 boxes", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg)
     table.cell(statsTable, 0, 2,  "Mode", text_color=lxMuted, text_size=size.tiny, bgcolor=lxRowA, text_halign=text.align_left)
     table.cell(statsTable, 1, 2,  prevMode == "Last Bull/Bear" ? "Engulf Last" : "Engulf Prev", text_color=lxCyan, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_right)
     table.cell(statsTable, 0, 3,  "Trades", text_color=lxMuted, text_size=size.tiny, bgcolor=lxRowB, text_halign=text.align_left)
@@ -727,7 +728,7 @@ f_drawSettings() =>
     table.cell(settingsTable, 0, 0, "◆  SETTINGS SUMMARY", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
     table.cell(settingsTable, 1, 0, "", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
     string[] k = array.from("Compare with", "Tolerance", "Buy", "Sell", "Exit rule", "1R Basis", "Stats TZ")
-    string[] v = array.from(prevMode, str.tostring(tol, "#.##"), allowLong ? "ON" : "OFF", allowShort ? "ON" : "OFF", (exitMode == "Opposite brick" ? "Opposite brick" : str.tostring(exitN) + " same-color" + (exitOnOpp ? " / opposite" : "")), "Renko brick", statsTz)
+    string[] v = array.from(prevMode, str.tostring(tol, "#.##"), allowLong ? "ON" : "OFF", allowShort ? "ON" : "OFF", (exitMode == "Opposite brick" ? "Opposite brick" : str.tostring(exitN) + " same-color" + (exitOnOpp ? " / opposite" : "")), "2 boxes", statsTz)
     for i = 0 to 6
         color rb = i % 2 == 0 ? lxRowA : lxRowB
         table.cell(settingsTable, 0, i + 1, array.get(k, i), text_color=lxMuted, text_size=size.tiny, bgcolor=rb, text_halign=text.align_left)
