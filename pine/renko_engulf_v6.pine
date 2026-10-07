@@ -150,11 +150,15 @@ engulfBull = bull and not na(refBullH) and high >= refBullH - tol and low <= ref
 engulfBear = bear and not na(refBearH) and high >= refBearH - tol and low <= refBearL + tol
 
 // Reversal entry: แท่งสีเดียวกันติดกัน >= revMin แท่ง แล้วแท่งสีตรงข้ามที่ High สูงกว่า และ Low ต่ำกว่า "แท่งล่าสุด" (= แท่งก่อนหน้าทันที)
-// redRun / grnRun = จำนวนแท่งแดง/เขียวติดกันที่นับถึงแท่งนี้ (ใช้ค่าของแท่งก่อนหน้า [1] ตอนตัดสิน)
-int redRun = bear ? nz(redRun[1]) + 1 : 0
-int grnRun = bull ? nz(grnRun[1]) + 1 : 0
-bool revBull = revEnable and bull and nz(redRun[1]) >= revMin and high > high[1] and low < low[1]
-bool revBear = revEnable and bear and nz(grnRun[1]) >= revMin and high > high[1] and low < low[1]
+// redRun / grnRun = จำนวนแท่งแดง/เขียวติดกัน (var อัปเดตทีละแท่ง) ส่วน redPrev / grnPrev = ค่าของ "แท่งก่อนหน้า" ก่อนอัปเดตแท่งนี้
+var int redRun = 0
+var int grnRun = 0
+int redPrev = redRun
+int grnPrev = grnRun
+redRun := bear ? redRun + 1 : 0
+grnRun := bull ? grnRun + 1 : 0
+bool revBull = revEnable and bull and redPrev >= revMin and high > high[1] and low < low[1]
+bool revBear = revEnable and bear and grnPrev >= revMin and high > high[1] and low < low[1]
 
 if bull
     lastBullH := high
