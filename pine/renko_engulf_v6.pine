@@ -34,7 +34,7 @@ countEntry = input.bool(false, "นับ box ที่เข้าออเด�
 
 showTradePath  = input.bool(true, "Show Trade Path Lines (เส้นโยงเปิด→ปิด)", group="Display & Stats", display=display.none)
 showEntryLine  = input.bool(true, "Show Entry Price Line + Label", group="Display & Stats", display=display.none)
-whMode     = input.string("Text only (pop-up)", "Alert mode (Any alert() function call)", options=["Text only (pop-up)", "OKX Signal Bot", "Own bridge server", "TopstepX Clicker"], group="Webhook", display=display.none,
+whMode     = input.string("TopstepX Clicker", "Alert mode (Any alert() function call)", options=["Text only (pop-up)", "OKX Signal Bot", "Own bridge server", "TopstepX Clicker"], group="Webhook", display=display.none,
      tooltip="ใช้กับ Alert ที่เลือก Condition = 'Any alert() function call'\nText only = ข้อความอ่านง่ายสำหรับ pop-up/มือถือ/อีเมล (ไม่ส่งอะไรเข้า OKX)\nOKX Signal Bot = JSON สำหรับ OKX Signal Bot (ไม่ต้องมีเซิร์ฟเวอร์) ขนาดออเดอร์ตั้งที่ Bot\nOwn bridge server = JSON สำหรับ webhook/okx_bridge.py\nTopstepX Clicker = JSON สำหรับบอทคลิก TopstepX บน PC/Mac (บังคับใช้ Immediate previous bar และ One order at a time)")
 whSignalToken = input.string("", "OKX signalToken (โหมด OKX Signal Bot)", group="Webhook", display=display.none, tooltip="คัดลอกจากหน้าสร้าง Signal ใน OKX")
 whSecret   = input.string("CHANGE_ME", "Webhook secret (โหมด Own bridge / TopstepX Clicker)", group="Webhook", display=display.none, tooltip="ต้องตรงกับ WEBHOOK_SECRET ของ bridge")
