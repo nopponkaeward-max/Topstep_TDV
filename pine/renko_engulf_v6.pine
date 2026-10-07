@@ -19,6 +19,9 @@ allowLong  = input.bool(true, "Enable Buy",  group="Entry Strategy", display=dis
 allowShort = input.bool(true, "Enable Sell", group="Entry Strategy", display=display.none)
 oneOrderOnly = input.bool(true, "One order at a time (เปิดได้ครั้งละ 1 ออเดอร์)", group="Entry Strategy", display=display.none,
      tooltip="เปิด = ถือได้ครั้งละ 1 ออเดอร์ สัญญาณใหม่ระหว่างถืออยู่จะถูกข้าม\nปิด = เจอสัญญาณทิศเดียวกันซ้ำจะเปิดออเดอร์เพิ่ม (ซ้อนไม้) แล้วปิดทั้งหมดเมื่อเจอแท่งตรงข้าม")
+revEnable  = input.bool(true, "Reversal entry (กลับตัวหลังแท่งสีเดียวกันติดกัน แล้วแท่งตรงข้ามครอบ)", group="Entry Strategy", display=display.none,
+     tooltip="เพิ่มเงื่อนไขเข้าอีกแบบ (ใช้ร่วมกับ Engulf เดิม ข้อไหนเข้าก่อนก็เข้า)\nBuy: มีแท่งแดงติดกันก่อนหน้า >= N แท่ง แล้วเกิดแท่งเขียวที่ High สูงกว่า และ Low ต่ำกว่า ของแท่งแดงล่าสุด\nSell: ตรงข้าม (แท่งเขียวติดกัน >= N แล้วแท่งแดงที่ High สูงกว่า และ Low ต่ำกว่าแท่งเขียวล่าสุด)\nExit / TP / SL ใช้ค่าเดิมทั้งหมด")
+revMin     = input.int(4, "Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N)", minval=1, maxval=50, group="Entry Strategy", display=display.none)
 
 exitMode   = input.string("Opposite brick", "Exit mode", options=["Opposite brick", "N same-color boxes"], group="Exit Strategy", display=display.none,
      tooltip="Opposite brick = ออกเมื่อเจอ box สีตรงข้ามกับทิศที่ถือ (แบบเดิม)\nN same-color boxes = ออกเมื่อมี box สีเดียวกับทิศที่ถือเกิดขึ้นครบ N แท่ง (นับหลังแท่งที่เข้า)")
@@ -146,6 +149,13 @@ refBearL = prevMode == "Last Bull/Bear" ? lastBearL : (bear[1] ? low[1]  : na)
 engulfBull = bull and not na(refBullH) and high >= refBullH - tol and low <= refBullL + tol
 engulfBear = bear and not na(refBearH) and high >= refBearH - tol and low <= refBearL + tol
 
+// Reversal entry: แท่งสีเดียวกันติดกัน >= revMin แท่ง แล้วแท่งสีตรงข้ามที่ High สูงกว่า และ Low ต่ำกว่า "แท่งล่าสุด" (= แท่งก่อนหน้าทันที)
+// redRun / grnRun = จำนวนแท่งแดง/เขียวติดกันที่นับถึงแท่งนี้ (ใช้ค่าของแท่งก่อนหน้า [1] ตอนตัดสิน)
+int redRun = bear ? nz(redRun[1]) + 1 : 0
+int grnRun = bull ? nz(grnRun[1]) + 1 : 0
+bool revBull = revEnable and bull and nz(redRun[1]) >= revMin and high > high[1] and low < low[1]
+bool revBear = revEnable and bear and nz(grnRun[1]) >= revMin and high > high[1] and low < low[1]
+
 if bull
     lastBullH := high
     lastBullL := low
@@ -212,9 +222,14 @@ if exitLong or exitShort
 // เข้าออเดอร์ (ถ้าเพิ่งออกในแท่งนี้ = กลับทิศได้ทันที)
 // One order at a time = เปิดอยู่ 1 ออเดอร์ สัญญาณใหม่ถูกข้ามจนกว่าจะปิด / ปิด = ซ้อนออเดอร์ทิศเดียวกันได้
 // โหมด TopstepX Clicker: ไม่เปิดใหม่ใน brick เดียวกับที่เพิ่งออก (กันบอทกดซื้อ-ขายพร้อมกันและลำดับสัญญาณสลับ)
-bool canOpen = (not oneOnly or array.size(oPx) == 0) and not (tsxMode and exitedNow)
-bool buySig  = engineOn and allowLong  and engulfBull and canOpen
-bool sellSig = engineOn and allowShort and engulfBear and canOpen
+bool candBuy  = engineOn and allowLong  and (engulfBull or revBull)
+bool candSell = engineOn and allowShort and (engulfBear or revBear)
+// โหมด TopstepX Clicker: ห้ามเข้า "ทิศเดิม" ใน brick เดียวกับที่เพิ่งออก เพราะบอทจะได้คำสั่งสวนกัน (sell แล้ว buy) ลำดับอาจสลับ
+// แต่การออกแล้วกลับทิศ (ออก long = sell + เข้า short = sell / ออก short = buy + เข้า long = buy) คำสั่งเหมือนกัน ทำได้
+bool reEntry = (exitLong and candBuy) or (exitShort and candSell)
+bool canOpen = (not oneOnly or array.size(oPx) == 0) and not (tsxMode and reEntry)
+bool buySig  = candBuy  and canOpen
+bool sellSig = candSell and canOpen
 
 if buySig or sellSig
     pos := buySig ? 1 : -1
@@ -226,7 +241,7 @@ if buySig or sellSig
     array.push(oTime, time)
     color sideCol = buySig ? color.green : color.red
     label.new(bar_index, close, "", style=label.style_circle, color=color.new(sideCol, 70), size=size.large)
-    label.new(bar_index, buySig ? low : high, buySig ? "Buy\nEngulf" : "Sell\nEngulf",
+    label.new(bar_index, buySig ? low : high, buySig ? (engulfBull ? "Buy\nEngulf" : "Buy\nRev") : (engulfBear ? "Sell\nEngulf" : "Sell\nRev"),
          style = buySig ? label.style_label_up : label.style_label_down, color=color.new(sideCol, 25), textcolor=color.white, size=orderLabelSize)
     if showEntryLine
         line.new(bar_index, close, bar_index + 6, close, color=color.new(sideCol, 30), width=2)
