@@ -34,16 +34,15 @@ countEntry = input.bool(false, "นับ box ที่เข้าออเด�
 
 showTradePath  = input.bool(true, "Show Trade Path Lines (เส้นโยงเปิด→ปิด)", group="Display & Stats", display=display.none)
 showEntryLine  = input.bool(true, "Show Entry Price Line + Label", group="Display & Stats", display=display.none)
-whMode     = input.string("TopstepX Clicker", "Alert mode (Any alert() function call)", options=["Text only (pop-up)", "OKX Signal Bot", "Own bridge server", "TopstepX Clicker"], group="Webhook", display=display.none,
-     tooltip="ใช้กับ Alert ที่เลือก Condition = 'Any alert() function call'\nText only = ข้อความอ่านง่ายสำหรับ pop-up/มือถือ/อีเมล (ไม่ส่งอะไรเข้า OKX)\nOKX Signal Bot = JSON สำหรับ OKX Signal Bot (ไม่ต้องมีเซิร์ฟเวอร์) ขนาดออเดอร์ตั้งที่ Bot\nOwn bridge server = JSON สำหรับ webhook/okx_bridge.py\nTopstepX Clicker = JSON สำหรับบอทคลิก TopstepX บน PC/Mac (บังคับใช้ Immediate previous bar และ One order at a time)")
+whMode     = input.string("TopstepX Clicker", "Alert mode (Any alert() function call)", options=["Text only (pop-up)", "OKX Signal Bot", "TopstepX Clicker"], group="Webhook", display=display.none,
+     tooltip="ใช้กับ Alert ที่เลือก Condition = 'Any alert() function call'\nText only = ข้อความอ่านง่ายสำหรับ pop-up/มือถือ/อีเมล (ไม่ส่งอะไรเข้า OKX)\nOKX Signal Bot = JSON สำหรับ OKX Signal Bot (ไม่ต้องมีเซิร์ฟเวอร์) ขนาดออเดอร์ตั้งที่ Bot\nTopstepX Clicker = JSON สำหรับบอทคลิก TopstepX บน PC/Mac (บังคับใช้ Immediate previous bar และ One order at a time)")
 whSignalToken = input.string("", "OKX signalToken (โหมด OKX Signal Bot)", group="Webhook", display=display.none, tooltip="คัดลอกจากหน้าสร้าง Signal ใน OKX")
-whSecret   = input.string("CHANGE_ME", "Webhook secret (โหมด Own bridge / TopstepX Clicker)", group="Webhook", display=display.none, tooltip="ต้องตรงกับ WEBHOOK_SECRET ของ bridge")
+whSecret   = input.string("CHANGE_ME", "Webhook secret (โหมด TopstepX Clicker)", group="Webhook", display=display.none, tooltip="ต้องตรงกับ secret ใน bot/config.json")
 whInstId   = input.string("BTC-USDT-SWAP", "OKX instId", group="Webhook", display=display.none, tooltip="เช่น BTC-USDT-SWAP (= OKX:BTCUSDT.P)")
 okxSizeMode = input.string("Bot setting", "OKX ขนาดออเดอร์ที่ส่งตอนเข้า (โหมด OKX Signal Bot)", options=["Bot setting", "contract", "margin", "percentage_balance", "percentage_investment"], group="Webhook", display=display.none,
      tooltip="Bot setting = ไม่ส่งขนาดไปกับสัญญาณ ใช้ขนาดที่ตั้งในหน้า Signal Bot ของ OKX (ถ้า Bot ไม่ได้ตั้ง OKX จะใช้ค่าเริ่มต้น = 100% ของยอดคงเหลือ (Bot คู่เดียว) หรือ 50% (Bot หลายคู่) ต่อการเข้า!)\ncontract = จำนวนสัญญา (จำนวนเต็ม) / margin = มาร์จิ้นเป็นจำนวนเงิน / percentage_balance = % ของยอดคงเหลือ / percentage_investment = % ของเงินลงทุนของ Bot\nหมายเหตุ: ถ้าทั้ง Bot และสัญญาณกำหนดขนาด OKX ใช้ค่าของ Bot ก่อน\nขาออกไม่ส่งขนาด (OKX ปิด 100% ของสถานะที่เปิดอยู่)")
 okxAmount  = input.float(1.0, "OKX amount (ตามชนิดที่เลือกด้านบน)", minval=0.01, step=1.0, group="Webhook", display=display.none,
      tooltip="contract: จำนวนเต็มบวก (ปัดให้เป็นจำนวนเต็ม) / margin: จำนวนเงินบวก / percentage_*: 0.01–100\nไม่ใช้เมื่อเลือก Bot setting")
-whSendSL   = input.bool(false, "Send SL (Low ของ brick สำหรับ Buy / High สำหรับ Sell)", group="Webhook", display=display.none)
 bool   tsxMode  = whMode == "TopstepX Clicker"
 // โหมด TopstepX Clicker: บังคับ Immediate previous bar (ไม่กลับทิศใน brick เดียว) และถือได้ครั้งละ 1 ออเดอร์
 string prevMode = tsxMode ? "Immediate previous bar" : prevModeIn
@@ -289,13 +288,6 @@ if whClose != "" or whOpen != ""
             alert(tsxHead + ',"action":"' + (whClose == "buy" ? "sell" : "buy") + '","event":"exit","id":"' + tsxId + '-x"}', alert.freq_all)
         if whOpen != ""
             alert(tsxHead + ',"action":"' + whOpen + '","event":"entry","id":"' + tsxId + '-e"}', alert.freq_all)
-    else
-        float whSl = whSendSL and whOpen != "" ? (buySig ? low : high) : na
-        string msg = '{"v":1,"secret":"' + whSecret + '","id":"' + str.tostring(time) + '-' + str.tostring(bar_index) + '","t":' + str.tostring(timenow) +
-             ',"instId":"' + whInstId + '","close":"' + whClose + '","open":"' + whOpen + '"' +
-             ',"px":' + str.tostring(close, "#.########") + ',"r":' + str.tostring(riskNow, "#.########") +
-             (na(whSl) ? '' : ',"sl":' + str.tostring(whSl, "#.########")) + '}'
-        alert(msg, alert.freq_all)
 
 // ---- ส่งสัญญาณทดสอบ 1 ครั้ง (varip = จำค่าข้าม tick ใน realtime กันยิงซ้ำ; รีเซ็ตเมื่อสคริปต์โหลดใหม่/Alert เริ่มใหม่) ----
 varip bool testSent = false
