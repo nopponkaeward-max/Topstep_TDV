@@ -39,6 +39,10 @@ whMode     = input.string("TopstepX Clicker", "Alert mode (Any alert() function 
 whSignalToken = input.string("", "OKX signalToken (โหมด OKX Signal Bot)", group="Webhook", display=display.none, tooltip="คัดลอกจากหน้าสร้าง Signal ใน OKX")
 whSecret   = input.string("CHANGE_ME", "Webhook secret (โหมด Own bridge / TopstepX Clicker)", group="Webhook", display=display.none, tooltip="ต้องตรงกับ WEBHOOK_SECRET ของ bridge")
 whInstId   = input.string("BTC-USDT-SWAP", "OKX instId", group="Webhook", display=display.none, tooltip="เช่น BTC-USDT-SWAP (= OKX:BTCUSDT.P)")
+okxSizeMode = input.string("Bot setting", "OKX ขนาดออเดอร์ที่ส่งตอนเข้า (โหมด OKX Signal Bot)", options=["Bot setting", "contract", "margin", "percentage_balance", "percentage_investment"], group="Webhook", display=display.none,
+     tooltip="Bot setting = ไม่ส่งขนาดไปกับสัญญาณ ใช้ขนาดที่ตั้งในหน้า Signal Bot ของ OKX (ถ้า Bot ไม่ได้ตั้ง OKX จะใช้ค่าเริ่มต้น = 100% ของยอดคงเหลือ (Bot คู่เดียว) หรือ 50% (Bot หลายคู่) ต่อการเข้า!)\ncontract = จำนวนสัญญา (จำนวนเต็ม) / margin = มาร์จิ้นเป็นจำนวนเงิน / percentage_balance = % ของยอดคงเหลือ / percentage_investment = % ของเงินลงทุนของ Bot\nหมายเหตุ: ถ้าทั้ง Bot และสัญญาณกำหนดขนาด OKX ใช้ค่าของ Bot ก่อน\nขาออกไม่ส่งขนาด (OKX ปิด 100% ของสถานะที่เปิดอยู่)")
+okxAmount  = input.float(1.0, "OKX amount (ตามชนิดที่เลือกด้านบน)", minval=0.01, step=1.0, group="Webhook", display=display.none,
+     tooltip="contract: จำนวนเต็มบวก (ปัดให้เป็นจำนวนเต็ม) / margin: จำนวนเงินบวก / percentage_*: 0.01–100\nไม่ใช้เมื่อเลือก Bot setting")
 whSendSL   = input.bool(false, "Send SL (Low ของ brick สำหรับ Buy / High สำหรับ Sell)", group="Webhook", display=display.none)
 bool   tsxMode  = whMode == "TopstepX Clicker"
 // โหมด TopstepX Clicker: บังคับ Immediate previous bar (ไม่กลับทิศใน brick เดียว) และถือได้ครั้งละ 1 ออเดอร์
@@ -270,10 +274,12 @@ if whClose != "" or whOpen != ""
         // รูปแบบ "Section B" ของ OKX Signal Bot — ส่ง EXIT ก่อน แล้วค่อย ENTER
         string whTs = str.format_time(timenow, "yyyy-MM-dd'T'HH:mm:ss'Z'", "UTC")
         string okxBase = '{"instrument":"' + whInstId + '","signalToken":"' + whSignalToken + '","timestamp":"' + whTs + '","maxLag":60,"orderType":"market","action":"'
+        // ขนาดออเดอร์ (เฉพาะขาเข้า): Bot setting = ไม่ส่ง / อื่นๆ = ส่ง investmentType + amount คู่กัน (OKX กำหนดให้ส่งคู่หรือไม่ส่งเลย)
+        string okxSize = okxSizeMode == "Bot setting" ? "" : ',"investmentType":"' + okxSizeMode + '","amount":' + (okxSizeMode == "contract" ? str.tostring(math.round(okxAmount)) : str.tostring(okxAmount))
         if whClose != ""
             alert(okxBase + (whClose == "buy" ? "EXIT_LONG" : "EXIT_SHORT") + '"}', alert.freq_all)
         if whOpen != ""
-            alert(okxBase + (whOpen == "buy" ? "ENTER_LONG" : "ENTER_SHORT") + '"}', alert.freq_all)
+            alert(okxBase + (whOpen == "buy" ? "ENTER_LONG" : "ENTER_SHORT") + '"' + okxSize + '}', alert.freq_all)
     else if tsxMode
         // ส่ง "ปุ่มที่ต้องกดจริง": ออก long = sell, ออก short = buy / เข้า long = buy, เข้า short = sell
         // Immediate ไม่มี exit+entry ใน brick เดียว แต่ถ้าเกิดก็ส่งแยก 2 ข้อความ (exit ก่อน) id ต่างกัน
