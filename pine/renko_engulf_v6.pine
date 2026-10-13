@@ -193,8 +193,8 @@ bool revBear = useRev and bear and grnPrev >= revMin and high > high[1] and low 
 // NoWick Reversal: แท่งสีตรงข้ามติดกัน >= nwMin แท่ง แล้วเกิดแท่งกลับสี โดยแท่งที่ติดกัน (แท่งก่อนหน้า) และแท่งที่เกิด "ไม่มีไส้" ทั้งคู่ แท่งอื่นมีไส้ได้
 // no wick = High อยู่ที่ขอบบนของตัวแท่ง และ Low อยู่ที่ขอบล่างของตัวแท่ง (ยอมคลาดได้ nwTol + ครึ่ง tick)
 bool noWick = high - math.max(open, close) <= nwTol + syminfo.mintick * 0.5 and math.min(open, close) - low <= nwTol + syminfo.mintick * 0.5
-bool nwBull = useNW and bull and noWick and nz(noWick[1], false) and redPrev >= nwMin
-bool nwBear = useNW and bear and noWick and nz(noWick[1], false) and grnPrev >= nwMin
+bool nwBull = useNW and bull and noWick and noWick[1] and redPrev >= nwMin
+bool nwBear = useNW and bear and noWick and noWick[1] and grnPrev >= nwMin
 
 if bull
     lastBullH := high
