@@ -70,7 +70,8 @@ statTargetM = input.string("August", "[โหมด 3] ระบุเดือ�
 statTargetY = input.int(0, "[โหมด 3] ระบุปี (0 = ปีปัจจุบัน)", minval=0, maxval=2100, group="Display & Stats", display=display.none)
 showTodayTable = input.bool(false, "Show Day Trades Table (รายออเดอร์ของวันที่เลือก/วันนี้)", group="Display & Stats", display=display.none,
      tooltip="แสดงตารางรายออเดอร์ของวันนี้/วันที่เลือก (เวลาเข้า/ออก ราคา จุด และ R) แสดงอัตโนมัติเมื่อเลือกโหมดสถิติ 0 หรือ 4")
-todayMaxRows = input.int(15, "จำนวนออเดอร์ล่าสุดที่แสดงในตารางรายออเดอร์", minval=3, maxval=40, group="Display & Stats", display=display.none)
+todayMaxRows = input.int(15, "จำนวนออเดอร์ล่าสุดที่แสดงในตารางรายออเดอร์ (0 = แสดงทั้งหมด)", minval=0, maxval=500, group="Display & Stats", display=display.none,
+     tooltip="0 = แสดงออเดอร์ทั้งหมดของวันที่ดู (ตารางยืดตามจำนวนออเดอร์ สูงสุดที่โค้ดจำกัดไว้ 95 แถว กันตารางใหญ่เกินจอ/เกินข้อจำกัดของ TradingView)")
 statPickDate = input.time(timestamp("GMT+7", 2026, 10, 13, 12, 0), "[โหมด 4] เลือกวันที่ (ปฏิทิน)", group="Display & Stats", display=display.none,
      tooltip="กดช่องนี้เพื่อเลือกวันที่จากปฏิทิน (ใช้เฉพาะวันที่ ไม่สนเวลา) ต้องตั้ง UTC (+/-) ด้านล่างให้ตรงกับ timezone ของกราฟ\nดูย้อนหลังได้เท่าที่ TradingView โหลดประวัติกราฟไว้")
 statsTzIncr = input.int(7, "UTC (+/-) สำหรับตัดวันของตาราง", minval=-12, maxval=14, group="Display & Stats", display=display.none, tooltip="ตั้งให้ตรงกับ timezone ของกราฟ (ไทย = +7)")
@@ -353,8 +354,7 @@ var table statsTable        = table.new(f_tablePos(mainTablePosStr),     2, 18, 
 var table dailyStatsTable   = table.new(f_tablePos(dailyTablePosStr),    6, 34,             bgcolor=lxRowA, frame_width=2, frame_color=lxFrame, border_width=1, border_color=lxGrid)
 var table monthlyStatsTable = table.new(f_tablePos(monthlyTablePosStr),  5, statMonths + 3, bgcolor=lxRowA, frame_width=2, frame_color=lxFrame, border_width=1, border_color=lxGrid)
 var table settingsTable     = table.new(f_tablePos(settingsTablePosStr), 2, 8,              bgcolor=lxRowA, frame_width=2, frame_color=lxFrame, border_width=1, border_color=lxGrid)
-var table todayTbl = table.new(f_tablePos(todayTablePosStr), 8, todayMaxRows + 6, bgcolor=lxRowA, frame_width=2, frame_color=lxFrame, border_width=1, border_color=lxGrid)
-var bool[] todayMergedArr = array.new_bool(1, false)
+var table todayTbl = na   // สร้างใหม่ทุกครั้งที่วาด เพราะจำนวนแถวเปลี่ยนตามจำนวนออเดอร์ของวันที่ดู
 var table weekdayStatsTable = table.new(f_tablePos(weekdayTablePosStr),  6, 10,             bgcolor=lxRowA, frame_width=2, frame_color=lxFrame, border_width=1, border_color=lxGrid)
 
 var bool[] lxMergedArr = array.new_bool(8, false)
@@ -764,13 +764,28 @@ f_drawSettings() =>
         array.set(lxMergedArr, 5, true)
         table.merge_cells(settingsTable, 0, 0, 1, 0)
 
+// จำนวนออเดอร์ที่ปิดแล้วของวันที่ดู และจำนวนออเดอร์ที่ยังเปิดอยู่ (เข้าวันที่ดู, สูงสุด 3 แถว)
+f_dayClosedCount() =>
+    int c = 0
+    int n = array.size(resIsWin)
+    if n > 0
+        for i = 0 to n - 1
+            if f_dayId(array.get(resTime, i)) == dayModeId
+                c += 1
+    c
+
+f_dayOpenCount() =>
+    int c = 0
+    int nO = array.size(oPx)
+    if nO > 0
+        for j = 0 to math.min(nO, 3) - 1
+            if f_dayId(array.get(oTime, j)) == dayModeId
+                c += 1
+    c
+
 // ตารางรายออเดอร์ของวันนี้/วันที่เลือก (เรียงตามเวลาเข้า) + ออเดอร์ที่ยังเปิดอยู่ + สรุป
-f_drawToday() =>
-    int rowsTotal = todayMaxRows + 6
-    // ล้างทุกช่องก่อน (จำนวนแถวเปลี่ยนตามจำนวนออเดอร์)
-    for r = 0 to rowsTotal - 1
-        for c = 0 to 7
-            table.cell(todayTbl, c, r, "", text_size=size.tiny, bgcolor=lxRowA)
+// tbl ถูกสร้างใหม่ก่อนเรียก (ขนาด rowsTotal แถว) / shown = จำนวนออเดอร์ที่ปิดแล้วที่จะแสดง (ล่าสุด)
+f_drawToday(table tbl, int shown, int rowsTotal) =>
     int[] idx = array.new_int()
     int n = array.size(resIsWin)
     if n > 0
@@ -778,7 +793,7 @@ f_drawToday() =>
             if f_dayId(array.get(resTime, i)) == dayModeId
                 array.push(idx, i)
     int cnt = array.size(idx)
-    int first = math.max(0, cnt - todayMaxRows)
+    int first = cnt - shown
     float sumR = 0.0
     float sumPts = 0.0
     int wCnt = 0
@@ -792,16 +807,17 @@ f_drawToday() =>
                 wCnt += 1
             else
                 lCnt += 1
-    table.cell(todayTbl, 0, 0, "◆  TRADES  ·  " + str.format_time(dayModeTs, "dd MMM yyyy", statsTz) + "  ·  " + str.tostring(cnt) + " closed" + (cnt > todayMaxRows ? "  (latest " + str.tostring(todayMaxRows) + ")" : ""), text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
+    table.cell(tbl, 0, 0, "◆  TRADES  ·  " + str.format_time(dayModeTs, "dd MMM yyyy", statsTz) + "  ·  " + str.tostring(cnt) + " closed" + (cnt > shown ? "  (latest " + str.tostring(shown) + ")" : ""), text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
     for c = 1 to 7
-        table.cell(todayTbl, c, 0, "", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
+        table.cell(tbl, c, 0, "", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
+    table.merge_cells(tbl, 0, 0, 7, 0)
     string[] hd = array.from("#", "SIDE", "IN", "OUT", "ENTRY", "EXIT", "PTS", "R")
     for c = 0 to 7
-        table.cell(todayTbl, c, 1, array.get(hd, c), text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg)
+        table.cell(tbl, c, 1, array.get(hd, c), text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg)
     int row = 2
     if cnt == 0 and array.size(oPx) == 0
-        table.cell(todayTbl, 0, row, "ไม่มีออเดอร์ในวันที่ดู", text_color=lxDimTx, text_size=size.tiny, bgcolor=lxRowA, text_halign=text.align_left)
-    if cnt > 0
+        table.cell(tbl, 0, row, "ไม่มีออเดอร์ในวันที่ดู", text_color=lxDimTx, text_size=size.tiny, bgcolor=lxRowA, text_halign=text.align_left)
+    if shown > 0
         for k = first to cnt - 1
             int i = array.get(idx, k)
             bool isBuy = array.get(resIsBuy, i)
@@ -810,16 +826,16 @@ f_drawToday() =>
             float rr = array.get(resR, i)
             color bg = row % 2 == 0 ? lxRowA : lxRowB
             color rc = win ? lxGreen : lxRed
-            table.cell(todayTbl, 0, row, str.tostring(k + 1), text_color=lxMuted, text_size=size.tiny, bgcolor=bg)
-            table.cell(todayTbl, 1, row, isBuy ? "BUY" : "SELL", text_color=isBuy ? lxGreen : lxRed, text_size=size.tiny, bgcolor=bg)
-            table.cell(todayTbl, 2, row, str.format_time(array.get(resTime, i), "HH:mm:ss", statsTz), text_color=lxText, text_size=size.tiny, bgcolor=bg)
-            table.cell(todayTbl, 3, row, str.format_time(array.get(resExitTime, i), "HH:mm:ss", statsTz), text_color=lxText, text_size=size.tiny, bgcolor=bg)
-            table.cell(todayTbl, 4, row, str.tostring(array.get(resEntryPx, i), format.mintick), text_color=lxText, text_size=size.tiny, bgcolor=bg, text_halign=text.align_right)
-            table.cell(todayTbl, 5, row, str.tostring(array.get(resExitPx, i), format.mintick), text_color=lxText, text_size=size.tiny, bgcolor=bg, text_halign=text.align_right)
-            table.cell(todayTbl, 6, row, (pts >= 0 ? "+" : "") + str.tostring(pts, "#.##"), text_color=rc, text_size=size.tiny, bgcolor=bg, text_halign=text.align_right)
-            table.cell(todayTbl, 7, row, f_rStr(rr), text_color=rc, text_size=size.tiny, bgcolor=bg, text_halign=text.align_right)
+            table.cell(tbl, 0, row, str.tostring(k + 1), text_color=lxMuted, text_size=size.tiny, bgcolor=bg)
+            table.cell(tbl, 1, row, isBuy ? "BUY" : "SELL", text_color=isBuy ? lxGreen : lxRed, text_size=size.tiny, bgcolor=bg)
+            table.cell(tbl, 2, row, str.format_time(array.get(resTime, i), "HH:mm:ss", statsTz), text_color=lxText, text_size=size.tiny, bgcolor=bg)
+            table.cell(tbl, 3, row, str.format_time(array.get(resExitTime, i), "HH:mm:ss", statsTz), text_color=lxText, text_size=size.tiny, bgcolor=bg)
+            table.cell(tbl, 4, row, str.tostring(array.get(resEntryPx, i), format.mintick), text_color=lxText, text_size=size.tiny, bgcolor=bg, text_halign=text.align_right)
+            table.cell(tbl, 5, row, str.tostring(array.get(resExitPx, i), format.mintick), text_color=lxText, text_size=size.tiny, bgcolor=bg, text_halign=text.align_right)
+            table.cell(tbl, 6, row, (pts >= 0 ? "+" : "") + str.tostring(pts, "#.##"), text_color=rc, text_size=size.tiny, bgcolor=bg, text_halign=text.align_right)
+            table.cell(tbl, 7, row, f_rStr(rr), text_color=rc, text_size=size.tiny, bgcolor=bg, text_halign=text.align_right)
             row += 1
-    // ออเดอร์ที่ยังเปิดอยู่ (เข้าวันนี้) แสดงกำไร/ขาดทุนลอยตัวที่ราคาปัจจุบัน
+    // ออเดอร์ที่ยังเปิดอยู่ (เข้าวันที่ดู) แสดงกำไร/ขาดทุนลอยตัวที่ราคาปัจจุบัน
     int nOpen = array.size(oPx)
     if nOpen > 0
         for j = 0 to math.min(nOpen, 3) - 1
@@ -828,26 +844,23 @@ f_drawToday() =>
                 float fl = pos == 1 ? close - ep : ep - close
                 float flR = fl / array.get(oRisk, j)
                 color oc = fl >= 0 ? lxGreen : lxRed
-                table.cell(todayTbl, 0, row, "▶", text_color=lxAmber, text_size=size.tiny, bgcolor=lxHeadBg)
-                table.cell(todayTbl, 1, row, pos == 1 ? "BUY" : "SELL", text_color=pos == 1 ? lxGreen : lxRed, text_size=size.tiny, bgcolor=lxHeadBg)
-                table.cell(todayTbl, 2, row, str.format_time(array.get(oTime, j), "HH:mm:ss", statsTz), text_color=lxText, text_size=size.tiny, bgcolor=lxHeadBg)
-                table.cell(todayTbl, 3, row, "OPEN", text_color=lxAmber, text_size=size.tiny, bgcolor=lxHeadBg)
-                table.cell(todayTbl, 4, row, str.tostring(ep, format.mintick), text_color=lxText, text_size=size.tiny, bgcolor=lxHeadBg, text_halign=text.align_right)
-                table.cell(todayTbl, 5, row, str.tostring(close, format.mintick), text_color=lxText, text_size=size.tiny, bgcolor=lxHeadBg, text_halign=text.align_right)
-                table.cell(todayTbl, 6, row, (fl >= 0 ? "+" : "") + str.tostring(fl, "#.##"), text_color=oc, text_size=size.tiny, bgcolor=lxHeadBg, text_halign=text.align_right)
-                table.cell(todayTbl, 7, row, f_rStr(flR), text_color=oc, text_size=size.tiny, bgcolor=lxHeadBg, text_halign=text.align_right)
+                table.cell(tbl, 0, row, "▶", text_color=lxAmber, text_size=size.tiny, bgcolor=lxHeadBg)
+                table.cell(tbl, 1, row, pos == 1 ? "BUY" : "SELL", text_color=pos == 1 ? lxGreen : lxRed, text_size=size.tiny, bgcolor=lxHeadBg)
+                table.cell(tbl, 2, row, str.format_time(array.get(oTime, j), "HH:mm:ss", statsTz), text_color=lxText, text_size=size.tiny, bgcolor=lxHeadBg)
+                table.cell(tbl, 3, row, "OPEN", text_color=lxAmber, text_size=size.tiny, bgcolor=lxHeadBg)
+                table.cell(tbl, 4, row, str.tostring(ep, format.mintick), text_color=lxText, text_size=size.tiny, bgcolor=lxHeadBg, text_halign=text.align_right)
+                table.cell(tbl, 5, row, str.tostring(close, format.mintick), text_color=lxText, text_size=size.tiny, bgcolor=lxHeadBg, text_halign=text.align_right)
+                table.cell(tbl, 6, row, (fl >= 0 ? "+" : "") + str.tostring(fl, "#.##"), text_color=oc, text_size=size.tiny, bgcolor=lxHeadBg, text_halign=text.align_right)
+                table.cell(tbl, 7, row, f_rStr(flR), text_color=oc, text_size=size.tiny, bgcolor=lxHeadBg, text_halign=text.align_right)
                 row += 1
     int totRow = rowsTotal - 1
     color totC = f_posColor(sumR, cnt == 0)
-    table.cell(todayTbl, 0, totRow, "TOTAL", text_color=lxTitleTx, text_size=size.tiny, bgcolor=lxHeadBg, text_halign=text.align_left)
-    table.cell(todayTbl, 1, totRow, cnt == 0 ? "-" : str.tostring(wCnt) + "W·" + str.tostring(lCnt) + "L", text_color=lxText, text_size=size.tiny, bgcolor=lxHeadBg)
+    table.cell(tbl, 0, totRow, "TOTAL", text_color=lxTitleTx, text_size=size.tiny, bgcolor=lxHeadBg, text_halign=text.align_left)
+    table.cell(tbl, 1, totRow, cnt == 0 ? "-" : str.tostring(wCnt) + "W·" + str.tostring(lCnt) + "L", text_color=lxText, text_size=size.tiny, bgcolor=lxHeadBg)
     for c = 2 to 5
-        table.cell(todayTbl, c, totRow, "", text_color=lxText, text_size=size.tiny, bgcolor=lxHeadBg)
-    table.cell(todayTbl, 6, totRow, cnt == 0 ? "-" : (sumPts >= 0 ? "+" : "") + str.tostring(sumPts, "#.##"), text_color=totC, text_size=size.tiny, bgcolor=lxHeadBg, text_halign=text.align_right)
-    table.cell(todayTbl, 7, totRow, cnt == 0 ? "-" : f_rStr(sumR), text_color=totC, text_size=size.tiny, bgcolor=lxHeadBg, text_halign=text.align_right)
-    if not array.get(todayMergedArr, 0)
-        array.set(todayMergedArr, 0, true)
-        table.merge_cells(todayTbl, 0, 0, 7, 0)
+        table.cell(tbl, c, totRow, "", text_color=lxText, text_size=size.tiny, bgcolor=lxHeadBg)
+    table.cell(tbl, 6, totRow, cnt == 0 ? "-" : (sumPts >= 0 ? "+" : "") + str.tostring(sumPts, "#.##"), text_color=totC, text_size=size.tiny, bgcolor=lxHeadBg, text_halign=text.align_right)
+    table.cell(tbl, 7, totRow, cnt == 0 ? "-" : f_rStr(sumR), text_color=totC, text_size=size.tiny, bgcolor=lxHeadBg, text_halign=text.align_right)
 
 // ==========================================
 // --- 6. DRAW TABLES (last bar only) ---
@@ -863,7 +876,14 @@ if showWeekdayTable and barstate.islast
 if showSettingsTable and barstate.islast
     f_drawSettings()
 if (showTodayTable or isDayMode) and barstate.islast
-    f_drawToday()
+    int tCnt  = f_dayClosedCount()
+    int tOpen = f_dayOpenCount()
+    int tShow = math.min(todayMaxRows == 0 ? tCnt : math.min(todayMaxRows, tCnt), 95)   // 0 = ทั้งหมด (จำกัด 95 แถว)
+    int tRows = 3 + math.max(tShow + tOpen, 1)                                          // หัว + หัวคอลัมน์ + แถวข้อมูล + TOTAL
+    if not na(todayTbl)
+        table.delete(todayTbl)
+    todayTbl := table.new(f_tablePos(todayTablePosStr), 8, tRows, bgcolor=lxRowA, frame_width=2, frame_color=lxFrame, border_width=1, border_color=lxGrid)
+    f_drawToday(todayTbl, tShow, tRows)
 
 // ==========================================
 // --- 7. เส้นแนวตั้ง High–Low ของ brick ที่ "กำลังก่อตัว" (ช่องถัดจากแท่งล่าสุด) ---
