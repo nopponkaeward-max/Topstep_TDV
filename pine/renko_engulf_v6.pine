@@ -72,7 +72,8 @@ showTodayTable = input.bool(false, "Show Day Trades Table (รายออเด
      tooltip="แสดงตารางรายออเดอร์ของวันนี้/วันที่เลือก (เวลาเข้า/ออก ราคา จุด และ R) แสดงอัตโนมัติเมื่อเลือกโหมดสถิติ 0 หรือ 4")
 todayMaxRows = input.int(15, "จำนวนออเดอร์ล่าสุดที่แสดงในตารางรายออเดอร์ (0 = แสดงทั้งหมด)", minval=0, maxval=500, group="Display & Stats", display=display.none,
      tooltip="0 = แสดงออเดอร์ทั้งหมดของวันที่ดู (ตารางยืดตามจำนวนออเดอร์ สูงสุดที่โค้ดจำกัดไว้ 95 แถว กันตารางใหญ่เกินจอ/เกินข้อจำกัดของ TradingView)")
-statPickDate = input.time(timestamp("13 Oct 2026 12:00 +0700"), "[โหมด 4] เลือกวันที่ (ปฏิทิน)", group="Display & Stats", display=display.none,
+// ค่าเริ่มต้นเป็นเลข epoch มิลลิวินาที (const) = 13 Oct 2026 12:00 (UTC+7); timestamp() ใน v6 ได้ชนิด simple ใช้เป็น defval ไม่ได้
+statPickDate = input.time(1791867600000, "[โหมด 4] เลือกวันที่ (ปฏิทิน)", group="Display & Stats", display=display.none,
      tooltip="กดช่องนี้เพื่อเลือกวันที่จากปฏิทิน (ใช้เฉพาะวันที่ ไม่สนเวลา) ต้องตั้ง UTC (+/-) ด้านล่างให้ตรงกับ timezone ของกราฟ\nดูย้อนหลังได้เท่าที่ TradingView โหลดประวัติกราฟไว้")
 statsTzIncr = input.int(7, "UTC (+/-) สำหรับตัดวันของตาราง", minval=-12, maxval=14, group="Display & Stats", display=display.none, tooltip="ตั้งให้ตรงกับ timezone ของกราฟ (ไทย = +7)")
 
