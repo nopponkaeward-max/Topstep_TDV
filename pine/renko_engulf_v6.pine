@@ -26,6 +26,14 @@ nwTol      = input.float(0.0, "NoWick: ไส้ที่ยอมรับไ�
      tooltip="แท่ง no wick = High เท่ากับด้านบนของตัวแท่ง และ Low เท่ากับด้านล่างของตัวแท่ง (บนกราฟ Renko ของ TradingView แท่งขึ้นมีไส้ล่าง / แท่งลงมีไส้บน)\nใส่ค่ามากกว่า 0 ถ้าอยากยอมให้มีไส้เล็กน้อย")
 revMin     = input.int(4, "Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อ Entry mode มี Reversal", minval=1, maxval=50, group="Entry Strategy", display=display.none)
 
+tfEnable   = input.bool(false, "เปิดตัวกรองช่วงเวลางดเทรด (UTC+7)", group="Trading Hours (UTC+7)", display=display.none,
+     tooltip="เปิด = ไม่เปิดออเดอร์ใหม่ในช่วงเวลาที่กำหนดด้านล่าง (เวลาไทย UTC+7)\nการออกจากออเดอร์ที่เปิดอยู่ยังทำงานตามปกติแม้อยู่ในช่วงงดเทรด\nใช้กับสถิติย้อนหลังด้วย (สัญญาณในช่วงงดเทรดจะไม่ถูกนับ)")
+tfSess1    = input.session("0400-0600", "ช่วงงดเทรด 1 (HHMM-HHMM เวลาไทย)", group="Trading Hours (UTC+7)", display=display.none,
+     tooltip="รูปแบบ HHMM-HHMM เช่น 0400-0600 (ช่วงพักตลาด CME ประมาณ 04:00-05:00 หรือ 05:00-06:00 เวลาไทย ตามฤดูกาล) ข้ามเที่ยงคืนได้ เช่น 2300-0100\nเวลาเริ่ม = รวม / เวลาสิ้นสุด = ไม่รวม / ถ้าเวลาเริ่มเท่ากับสิ้นสุด (เช่น 0000-0000) = ไม่ใช้ช่วงนี้")
+tfSess2    = input.session("0000-0000", "ช่วงงดเทรด 2 (0000-0000 = ไม่ใช้)", group="Trading Hours (UTC+7)", display=display.none)
+tfSess3    = input.session("0000-0000", "ช่วงงดเทรด 3 (0000-0000 = ไม่ใช้)", group="Trading Hours (UTC+7)", display=display.none)
+showTfBg   = input.bool(true, "แรเงาแท่งในช่วงงดเทรด", group="Trading Hours (UTC+7)", display=display.none)
+
 exitMode   = input.string("Opposite brick", "Exit mode", options=["Opposite brick", "N same-color boxes"], group="Exit Strategy", display=display.none,
      tooltip="Opposite brick = ออกเมื่อเจอ box สีตรงข้ามกับทิศที่ถือ (แบบเดิม)\nN same-color boxes = ออกเมื่อมี box สีเดียวกับทิศที่ถือเกิดขึ้นครบ N แท่ง (นับหลังแท่งที่เข้า)")
 exitN      = input.int(3, "N = จำนวน box สีเดียวกับทิศออเดอร์", minval=1, maxval=50, group="Exit Strategy", display=display.none,
@@ -270,8 +278,24 @@ if exitLong or exitShort
 // เข้าออเดอร์ (ถ้าเพิ่งออกในแท่งนี้ = กลับทิศได้ทันที)
 // One order at a time = เปิดอยู่ 1 ออเดอร์ สัญญาณใหม่ถูกข้ามจนกว่าจะปิด / ปิด = ซ้อนออเดอร์ทิศเดียวกันได้
 // โหมด TopstepX Clicker: ไม่เปิดใหม่ใน brick เดียวกับที่เพิ่งออก (กันบอทกดซื้อ-ขายพร้อมกันและลำดับสัญญาณสลับ)
-bool candBuy  = engineOn and allowLong  and (engulfBull or revBull or nwBull)
-bool candSell = engineOn and allowShort and (engulfBear or revBear or nwBear)
+// ---- ตัวกรองช่วงเวลางดเทรด (UTC+7): งดเปิดออเดอร์ใหม่เท่านั้น ส่วนการออกยังทำงานปกติ ----
+// เวลาที่ใช้ตัดสิน: realtime = เวลาปัจจุบัน (ตอน brick ปิด) / ย้อนหลัง = เวลาของแท่ง (ประมาณ)
+f_sessMin(string sess, bool isStart) =>
+    string t = isStart ? str.substring(sess, 0, 4) : str.substring(sess, 5, 9)
+    int(str.tonumber(str.substring(t, 0, 2)) * 60 + str.tonumber(str.substring(t, 2, 4)))
+
+f_inWin(string sess, int m) =>
+    int a = f_sessMin(sess, true)
+    int b = f_sessMin(sess, false)
+    a == b ? false : a < b ? (m >= a and m < b) : (m >= a or m < b)
+
+int  sigTs      = barstate.isrealtime ? timenow : time
+int  minNow     = hour(sigTs, "UTC+7") * 60 + minute(sigTs, "UTC+7")
+bool inBlackout = tfEnable and (f_inWin(tfSess1, minNow) or f_inWin(tfSess2, minNow) or f_inWin(tfSess3, minNow))
+bgcolor(showTfBg and inBlackout ? color.new(color.gray, 85) : na, title="No-trade window")
+
+bool candBuy  = engineOn and allowLong and not inBlackout and (engulfBull or revBull or nwBull)
+bool candSell = engineOn and allowShort and not inBlackout and (engulfBear or revBear or nwBear)
 // โหมด TopstepX Clicker: ห้ามเข้า "ทิศเดิม" ใน brick เดียวกับที่เพิ่งออก เพราะบอทจะได้คำสั่งสวนกัน (sell แล้ว buy) ลำดับอาจสลับ
 // แต่การออกแล้วกลับทิศ (ออก long = sell + เข้า short = sell / ออก short = buy + เข้า long = buy) คำสั่งเหมือนกัน ทำได้
 bool reEntry = (exitLong and candBuy) or (exitShort and candSell)
