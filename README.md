@@ -16,9 +16,9 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 | เหตุการณ์ใน Indicator | บอทกด |
 |---|---|
 | เข้า long | กด Buy 1 ครั้ง |
-| ออก long (เจอ brick ขาลง) | กด Sell 1 ครั้ง |
+| ออก long (เจอ brick ขาลง) | กด **Close Position** (+ Cancel All) *(ค่าเริ่มต้น)* หรือ Sell ตรงข้าม (ตัวเลือก `Opposite order`) |
 | เข้า short | กด Sell 1 ครั้ง |
-| ออก short (เจอ brick ขาขึ้น) | กด Buy 1 ครั้ง |
+| ออก short (เจอ brick ขาขึ้น) | กด **Close Position** (+ Cancel All) *(ค่าเริ่มต้น)* หรือ Buy ตรงข้าม |
 
 บอทกด **1 ครั้งต่อสัญญาณ** จำนวนสัญญาตั้งไว้ใน TopstepX แล้ว (ไม่มี qty ใน Indicator/บอท) เข้า-ออกใช้ขนาดเดียวกัน จึงปิดสถานะพอดี
 
@@ -88,9 +88,27 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 - **log ที่ขึ้นว่ากดคีย์แล้ว ไม่ได้ยืนยันว่าออเดอร์เข้า** ดูผลที่หน้า Positions ของ TopstepX เอง
 - **เริ่มด้วย `dry_run: true` และบัญชี Practice เสมอ**
 
+## ออกด้วย SL ใน TopstepX + Close Position (แนะนำ ลดความหน่วงฝั่งออก)
+ตั้ง **Stop Loss 2 box** ในแผงเทรดของ TopstepX (เท่ากับระยะที่ Indicator ออกเมื่อเจอ brick สีตรงข้าม และเท่ากับ 1R) โบรกเกอร์จะตัดทันทีที่ราคาถึง โดยไม่ต้องรอ TradingView/บอท จากนั้นสัญญาณออกที่ตามมาทีหลังจะกด **Close Position**:
+- ถ้า SL ปิดสถานะไปแล้ว (flat) → Close Position **ไม่เกิดอะไรขึ้น** ซ้ำได้โดยไม่เสียหาย (ต่างจากการกด Sell/Buy ตรงข้ามที่จะ **เปิดสถานะสวนทางใหม่** ถ้าสถานะถูกปิดไปก่อน)
+- ถ้า SL ยังไม่ทำงาน (เช่น ราคาของ TradingView กับ TopstepX คลาดกัน) → Close Position ปิดให้ เป็นตัวสำรอง
+- หลัง Close Position บอทกด **Cancel All** ต่อ เพื่อกัน SL/TP ที่ค้างเหลือเป็นคำสั่งกำพร้า (ปิดได้ที่ `cancel_after_close: false`) **Cancel All ยกเลิกคำสั่งรอทั้งหมด** ถ้าคุณมีคำสั่งรออื่นที่ตั้งเอง ให้ปิดตัวเลือกนี้
+- ใน brick ที่ออกแล้วกลับทิศพอดี (เช่น Reversal) Indicator ส่ง **ข้อความเดียว** ที่มี `close_first` บอทจะกด Close Position → Cancel All → แล้วค่อยกด Buy/Sell ตามลำดับเสมอ (ไม่สลับลำดับ)
+- เลือกวิธีออกใน Indicator ที่ช่อง **TopstepX: วิธีออกออเดอร์** (`Close Position` ค่าเริ่มต้น / `Opposite order` แบบเดิม **ห้ามใช้แบบเดิมคู่กับ SL ใน TopstepX**)
+- สิ่งที่ต้องทดสอบบน Practice ก่อน: Close Position ปิดเฉพาะสัญลักษณ์ที่เปิดอยู่ (ไม่ใช่ทั้งบัญชี), SL ที่ค้างถูกยกเลิกหรือไม่หลังปิด, และเวลาที่ SL ปิดสถานะไปแล้วแล้วกด Close Position ไม่มีผลข้างเคียง
+
 ## 1) ตั้งคีย์ลัดใน TopstepX
 บอทกดคีย์ลัด Buy/Sell Market ใส่หน้า TopstepX (ไม่มีโหมดคลิกแล้ว ถ้าอยากกลับไปใช้ ดูโค้ดเก่าในประวัติ git commit `33005dd`)
-- ตั้งคีย์ลัดในหน้า Hotkeys ของ TopstepX: Windows `Ctrl+Alt+B / Ctrl+Alt+S`, macOS `Control+Shift+B / Control+Shift+S` แล้วให้ `hotkeys` ใน `config.json` ตรงกัน (ไม่ใส่ = ใช้ค่านี้ตามระบบปฏิบัติการ)
+- ตั้งคีย์ลัดในหน้า Hotkeys ของ TopstepX (หมวด Trading และ Management & Exits) แล้วให้ `hotkeys` ใน `config.json` ตรงกัน ไม่ใส่ = ใช้ค่าแนะนำตามระบบปฏิบัติการ:
+
+| การกระทำใน TopstepX | `hotkeys` | macOS | Windows |
+|---|---|---|---|
+| Buy Market | `buy` | Control+Shift+B | Ctrl+Alt+B |
+| Sell Market | `sell` | Control+Shift+S | Ctrl+Alt+S |
+| Close Position | `close` | Control+Shift+C | Ctrl+Alt+C |
+| Cancel All | `cancel_all` | Control+Shift+X | Ctrl+Alt+X |
+
+  (Windows เลี่ยง `Ctrl+Shift+C` เพราะเปิด DevTools ของเบราว์เซอร์ / ห้ามใช้ Flatten All เป็นคำสั่งออก เพราะปิดทุกสถานะในบัญชี)
 - ตั้งขนาดออเดอร์ (และ stop/target ถ้าต้องการ) ในแผงเทรด TopstepX ให้พร้อมก่อน คีย์ลัดส่งออเดอร์ตามค่าที่ตั้งไว้ ณ ตอนนั้น
 - ต้องเปิด Keyboard layout เป็นภาษาอังกฤษ (ถ้าเป็นไทย ตัวอักษรที่ส่งไม่ตรง คีย์ลัดไม่ทำงาน)
 - กดมือทดสอบก่อนว่าคีย์ลัดส่งออเดอร์ได้ แล้วทดสอบว่าคีย์ถึงเบราว์เซอร์ไหมด้วย `bot/keytest.html`
@@ -201,6 +219,8 @@ TradingView เรียกเข้าเครื่องคุณตรง�
 | `dry_run` | `true` = ไม่ทำจริง |
 | `max_age_seconds` | ทิ้งสัญญาณที่เก่าเกินกี่วินาที (0 = ไม่เช็ก, ต้องให้นาฬิกาเครื่องตรงเวลา) |
 | `key_hold_seconds` | เวลาค้างคีย์ก่อนปล่อย (ค่าเริ่มต้น 0.04 วินาที) ถ้า TopstepX จับคีย์ไม่ติดให้เพิ่มเป็น 0.08–0.1 |
-| `hotkeys` | ไม่ใส่ = ใช้ค่าแนะนำตามระบบปฏิบัติการ |
+| `hotkeys` | คีย์ `buy`, `sell`, `close`, `cancel_all` ตัวที่ไม่ใส่ใช้ค่าแนะนำตามระบบปฏิบัติการ |
+| `cancel_after_close` | กด Cancel All หลัง Close Position (ค่าเริ่มต้น true) |
+| `cancel_delay_seconds` | หน่วงระหว่างคีย์ Close → Cancel All → Buy/Sell (ค่าเริ่มต้น 0.1 วินาที) |
 
 หยุดฉุกเฉิน: ลากเมาส์ไปมุมซ้ายบนของจอ หรือปิดบอท (Ctrl+C)

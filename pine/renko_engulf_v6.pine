@@ -58,6 +58,8 @@ bool   tsxMode  = whMode == "TopstepX Clicker"
 // โหมด TopstepX Clicker: บังคับ Immediate previous bar (ไม่กลับทิศใน brick เดียว) และถือได้ครั้งละ 1 ออเดอร์
 string prevMode = tsxMode ? "Immediate previous bar" : prevModeIn
 bool   oneOnly  = tsxMode ? true : oneOrderOnly
+tsxExitVia = input.string("Close Position", "TopstepX: วิธีออกออเดอร์", options=["Close Position", "Opposite order"], group="Webhook", display=display.none,
+     tooltip="Close Position = ส่ง action 'close' ให้บอทกดคีย์ Close Position (+ Cancel All) ปลอดภัยแม้ SL ใน TopstepX ปิดสถานะไปก่อนแล้ว (ถ้า flat อยู่ ไม่เกิดอะไร)\nOpposite order = ส่ง buy/sell ตรงข้าม (แบบเดิม) ห้ามใช้คู่กับ SL ใน TopstepX เพราะถ้า SL ปิดไปแล้ว จะเปิดสถานะสวนทางโดยไม่ตั้งใจ\nต้องตั้งคีย์ลัด Close Position และ Cancel All ใน TopstepX และใน bot/config.json ให้ตรงกัน")
 testSend   = input.bool(false, "ส่งสัญญาณทดสอบไปบอท (ใช้ตอนสร้าง Alert ทดสอบเท่านั้น)", group="Webhook", display=display.none,
      tooltip="เฉพาะโหมด TopstepX Clicker: เมื่อเปิด จะส่งสัญญาณทดสอบ 1 ครั้งทันทีที่สคริปต์/Alert เริ่มทำงานแบบ realtime เพื่อเช็กสายส่ง TradingView → Webhook → บอท\nอย่าเปิดไว้ใน Alert จริง! ให้สร้าง Alert ทดสอบแยก แล้วลบทิ้งหลังทดสอบ (ถ้าบอท dry_run=false บอทจะกดคีย์จริง)")
 testAct    = input.string("buy", "ทดสอบ action", options=["buy", "sell"], group="Webhook", display=display.none)
@@ -342,14 +344,24 @@ if whClose != "" or whOpen != ""
         if whOpen != ""
             alert(okxBase + (whOpen == "buy" ? "ENTER_LONG" : "ENTER_SHORT") + '"' + okxSize + '}', alert.freq_all)
     else if tsxMode
-        // ส่ง "ปุ่มที่ต้องกดจริง": ออก long = sell, ออก short = buy / เข้า long = buy, เข้า short = sell
-        // Immediate ไม่มี exit+entry ใน brick เดียว แต่ถ้าเกิดก็ส่งแยก 2 ข้อความ (exit ก่อน) id ต่างกัน
+        // ส่ง "คำสั่งที่ต้องกดจริง"
+        //  - ออกแบบ Close Position: action "close" (ซ้ำได้ ปลอดภัยกับ SL ใน TopstepX)
+        //  - ออก+เข้าใน brick เดียวกัน (กลับทิศ): ส่งข้อความเดียว close_first=true บอทปิดก่อนแล้วค่อยเข้า (ลำดับไม่สลับ)
+        //  - ออกแบบ Opposite order: ออก long = sell, ออก short = buy (แบบเดิม)
         string tsxHead = '{"secret":"' + whSecret + '","t":' + str.tostring(timenow)
         string tsxId   = str.tostring(time) + '-' + str.tostring(bar_index)
-        if whClose != ""
-            alert(tsxHead + ',"action":"' + (whClose == "buy" ? "sell" : "buy") + '","event":"exit","id":"' + tsxId + '-x"}', alert.freq_all)
-        if whOpen != ""
-            alert(tsxHead + ',"action":"' + whOpen + '","event":"entry","id":"' + tsxId + '-e"}', alert.freq_all)
+        if tsxExitVia == "Close Position"
+            if whClose != "" and whOpen != ""
+                alert(tsxHead + ',"action":"' + whOpen + '","event":"entry","close_first":true,"id":"' + tsxId + '-r"}', alert.freq_all)
+            else if whClose != ""
+                alert(tsxHead + ',"action":"close","event":"exit","id":"' + tsxId + '-x"}', alert.freq_all)
+            else if whOpen != ""
+                alert(tsxHead + ',"action":"' + whOpen + '","event":"entry","id":"' + tsxId + '-e"}', alert.freq_all)
+        else
+            if whClose != ""
+                alert(tsxHead + ',"action":"' + (whClose == "buy" ? "sell" : "buy") + '","event":"exit","id":"' + tsxId + '-x"}', alert.freq_all)
+            if whOpen != ""
+                alert(tsxHead + ',"action":"' + whOpen + '","event":"entry","id":"' + tsxId + '-e"}', alert.freq_all)
 
 // ---- ส่งสัญญาณทดสอบ 1 ครั้ง (varip = จำค่าข้าม tick ใน realtime กันยิงซ้ำ; รีเซ็ตเมื่อสคริปต์โหลดใหม่/Alert เริ่มใหม่) ----
 varip bool testSent = false

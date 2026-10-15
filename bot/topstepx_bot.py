@@ -2,7 +2,7 @@
 """รับ Webhook จาก TradingView (Renko Engulf, โหมด "TopstepX Clicker") แล้วกดคีย์ลัด Buy/Sell บน TopstepX
 
   python3 topstepx_bot.py run            # เริ่มรับสัญญาณ
-  python3 topstepx_bot.py test buy       # ทดสอบกดคีย์ (ตาม dry_run)
+  python3 topstepx_bot.py test buy       # ทดสอบกดคีย์ buy | sell | close (ตาม dry_run)
 
 กดคีย์ลัด 1 ครั้งต่อสัญญาณใส่หน้าต่างที่โฟกัสอยู่ (จำนวนสัญญาตั้งไว้ใน TopstepX แล้ว)
 ไม่ใช้ API ไม่ตรวจสถานะบัญชี: Indicator สั่งอะไร บอทกดตามนั้น
@@ -20,12 +20,13 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 CONFIG_PATH = HERE / "config.json"
 LOG_PATH = HERE / "bot.log"
-ACTIONS = ("buy", "sell")
+ACTIONS = ("buy", "sell", "close")   # close = กดคีย์ Close Position (ปิดแล้วซ้ำได้ ถ้า flat อยู่แล้วไม่เกิดอะไร)
 
-# คีย์ลัดแนะนำ: Windows = Ctrl+Alt+B/S, macOS = Control+Shift+B/S (ดู README)
+# คีย์ลัดแนะนำ (ต้องตั้งในหน้า Hotkeys ของ TopstepX ให้ตรงกัน): Windows = Ctrl+Alt+..., macOS = Control+Shift+...
+# buy/sell = Buy/Sell Market, close = Close Position, cancel_all = Cancel All
 DEFAULT_HOTKEYS = {
-    "Windows": {"buy": ["ctrl", "alt", "b"], "sell": ["ctrl", "alt", "s"]},
-    "Darwin": {"buy": ["ctrl", "shift", "b"], "sell": ["ctrl", "shift", "s"]},
+    "Windows": {"buy": ["ctrl", "alt", "b"], "sell": ["ctrl", "alt", "s"], "close": ["ctrl", "alt", "c"], "cancel_all": ["ctrl", "alt", "x"]},
+    "Darwin": {"buy": ["ctrl", "shift", "b"], "sell": ["ctrl", "shift", "s"], "close": ["ctrl", "shift", "c"], "cancel_all": ["ctrl", "shift", "x"]},
 }
 
 seen_ids = deque(maxlen=1000)
@@ -44,7 +45,8 @@ def load_config():
     if not CONFIG_PATH.exists():
         sys.exit("ไม่พบ bot/config.json ให้คัดลอกจาก config.example.json ก่อน")
     cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    cfg.setdefault("hotkeys", DEFAULT_HOTKEYS.get(platform.system(), DEFAULT_HOTKEYS["Windows"]))
+    defaults = DEFAULT_HOTKEYS.get(platform.system(), DEFAULT_HOTKEYS["Windows"])
+    cfg["hotkeys"] = {**defaults, **cfg.get("hotkeys", {})}   # ค่าที่ไม่ได้ใส่ใน config ใช้ค่าแนะนำ
     return cfg
 
 
@@ -56,8 +58,8 @@ def gui():
     return pyautogui
 
 
-def press(cfg, action):
-    keys = cfg["hotkeys"][action]
+def press(cfg, name):
+    keys = cfg["hotkeys"][name]
     gui_ = gui()
     # กดทีละปุ่มแล้วค้างไว้สั้นๆ แทน hotkey() ที่กด-ปล่อยเร็วจนเว็บบางตัวจับคีย์ไม่ทัน
     hold = cfg.get("key_hold_seconds", 0.04)
@@ -70,19 +72,42 @@ def press(cfg, action):
     finally:
         for k in reversed(pressed):
             gui_.keyUp(k)
-    log(f"  ส่งคีย์ {'+'.join(keys)} ({action}) แล้ว (ยืนยันผลที่หน้า TopstepX เอง)")
+    log(f"  ส่งคีย์ {'+'.join(keys)} ({name}) แล้ว (ยืนยันผลที่หน้า TopstepX เอง)")
 
 
-def execute(cfg, action, event, t_recv=None, lag_ms=None):
+def press_close(cfg):
+    """Close Position แล้ว (ถ้าเปิดไว้) Cancel All เพื่อไม่ให้ SL/TP ที่ค้างเหลือเป็นคำสั่งกำพร้า"""
+    press(cfg, "close")
+    if cfg.get("cancel_after_close", True):
+        time.sleep(cfg.get("cancel_delay_seconds", 0.1))
+        press(cfg, "cancel_all")
+
+
+def describe(cfg, action, close_first=False):
+    keys = "+".join(cfg["hotkeys"][action])
+    if action == "close":
+        extra = f" แล้ว {'+'.join(cfg['hotkeys']['cancel_all'])} (Cancel All)" if cfg.get("cancel_after_close", True) else ""
+        return f"กดคีย์ {keys} (Close Position){extra}"
+    pre = f"Close Position{' + Cancel All' if cfg.get('cancel_after_close', True) else ''} ก่อน แล้ว" if close_first else ""
+    return f"{pre}กดคีย์ {keys}"
+
+
+def execute(cfg, action, event, t_recv=None, lag_ms=None, close_first=False):
     t0 = time.time()
     if lag_ms is not None:
         log(f"  (สัญญาณมาถึงบอทหลังถูกสร้างใน TradingView {lag_ms:.0f} ms)")
     if cfg.get("dry_run", True):
-        log(f"[DRY RUN] {event} {action} -> จะกดคีย์ {'+'.join(cfg['hotkeys'][action])} (ยังไม่ได้กดจริง)")
+        log(f"[DRY RUN] {event} {action} -> จะ{describe(cfg, action, close_first)} (ยังไม่ได้กดจริง)")
         return
-    log(f"{event} {action}")
+    log(f"{event} {action}" + (" (ปิดสถานะก่อน)" if close_first else ""))
     try:
-        press(cfg, action)
+        if close_first:
+            press_close(cfg)
+            time.sleep(cfg.get("cancel_delay_seconds", 0.1))
+        if action == "close":
+            press_close(cfg)
+        else:
+            press(cfg, action)
     except Exception as e:  # noqa: BLE001
         log(f"!! กดไม่สำเร็จ ({event} {action}): {e}  ตรวจสถานะบัญชีด้วยตัวเอง")
         return
@@ -93,32 +118,33 @@ def execute(cfg, action, event, t_recv=None, lag_ms=None):
 
 def worker(cfg):
     while True:
-        action, event, t_recv, lag_ms = jobs.get()
-        execute(cfg, action, event, t_recv, lag_ms)
+        action, event, t_recv, lag_ms, close_first = jobs.get()
+        execute(cfg, action, event, t_recv, lag_ms, close_first)
 
 
 def validate(cfg, data):
-    """คืน (action, event, error)"""
+    """คืน (action, event, close_first, error)"""
     if data.get("secret") != cfg["secret"]:
-        return None, None, "secret ไม่ถูกต้อง"
+        return None, None, False, "secret ไม่ถูกต้อง"
     action = str(data.get("action", "")).lower()
     if action not in ACTIONS:
-        return None, None, f"action ไม่รู้จัก: {action!r}"
+        return None, None, False, f"action ไม่รู้จัก: {action!r}"
     event = str(data.get("event", "entry")).lower()
     if event not in ("entry", "exit"):
-        return None, None, f"event ไม่รู้จัก: {event!r}"
+        return None, None, False, f"event ไม่รู้จัก: {event!r}"
     max_age = cfg.get("max_age_seconds", 120)
     t = data.get("t")
     if max_age and isinstance(t, (int, float)) and abs(time.time() * 1000 - t) > max_age * 1000:
-        return None, None, f"สัญญาณเก่าเกิน {max_age}s (อายุ {abs(time.time() * 1000 - t) / 1000:.0f}s) ไม่ทำ"
+        return None, None, False, f"สัญญาณเก่าเกิน {max_age}s (อายุ {abs(time.time() * 1000 - t) / 1000:.0f}s) ไม่ทำ"
     sig_id = str(data.get("id", ""))
     if not sig_id:
-        return None, None, "ไม่มี id"
+        return None, None, False, "ไม่มี id"
     with seen_lock:
         if sig_id in seen_ids:
-            return None, None, f"id ซ้ำ ({sig_id}) ข้าม"
+            return None, None, False, f"id ซ้ำ ({sig_id}) ข้าม"
         seen_ids.append(sig_id)
-    return action, event, None
+    close_first = data.get("close_first") is True   # ใน brick เดียวกันที่ออกแล้วกลับทิศ: ปิดสถานะก่อนแล้วค่อยเข้า (ในข้อความเดียว ลำดับไม่สลับ)
+    return action, event, close_first, None
 
 
 def make_handler(cfg):
@@ -142,13 +168,13 @@ def make_handler(cfg):
             except ValueError:
                 log(f"ปฏิเสธ: ข้อความไม่ใช่ JSON: {body[:100]!r}")
                 return self._reply(400, "not json")
-            action, event, err = validate(cfg, data if isinstance(data, dict) else {})
+            action, event, close_first, err = validate(cfg, data if isinstance(data, dict) else {})
             if err:
                 log(f"ปฏิเสธ: {err}")
                 return self._reply(403 if "secret" in err else 202, err)
             t_sig = data.get("t") if isinstance(data, dict) else None
             lag = time.time() * 1000 - t_sig if isinstance(t_sig, (int, float)) else None
-            jobs.put((action, event, time.time(), lag))  # ตอบ TradingView ทันที (ต้องตอบภายใน 3 วินาที)
+            jobs.put((action, event, time.time(), lag, close_first))  # ตอบ TradingView ทันที (ต้องตอบภายใน 3 วินาที)
             self._reply(200, "queued")
 
         def log_message(self, *args):
@@ -175,7 +201,7 @@ def cmd_run(cfg):
 
 def cmd_test(cfg, action):
     if action not in ACTIONS:
-        sys.exit("ใช้: test buy|sell")
+        sys.exit("ใช้: test buy|sell|close")
     print("จะกดคีย์ใน 3 วินาที สลับไปหน้า TopstepX ได้เลย")
     time.sleep(3)
     execute(cfg, action, "test", time.time())
