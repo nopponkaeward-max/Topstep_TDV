@@ -23,10 +23,10 @@ LOG_PATH = HERE / "bot.log"
 ACTIONS = ("buy", "sell", "close")   # close = กดคีย์ Close Position (ปิดแล้วซ้ำได้ ถ้า flat อยู่แล้วไม่เกิดอะไร)
 
 # คีย์ลัดแนะนำ (ต้องตั้งในหน้า Hotkeys ของ TopstepX ให้ตรงกัน): Windows = Ctrl+Alt+..., macOS = Control+Shift+...
-# buy/sell = Buy/Sell Market, close = Close Position, cancel_all = Cancel All
+# buy/sell = Buy/Sell Market, close = Close Position
 DEFAULT_HOTKEYS = {
-    "Windows": {"buy": ["ctrl", "alt", "b"], "sell": ["ctrl", "alt", "s"], "close": ["ctrl", "alt", "c"], "cancel_all": ["ctrl", "alt", "x"]},
-    "Darwin": {"buy": ["ctrl", "shift", "b"], "sell": ["ctrl", "shift", "s"], "close": ["ctrl", "shift", "c"], "cancel_all": ["ctrl", "shift", "x"]},
+    "Windows": {"buy": ["ctrl", "alt", "b"], "sell": ["ctrl", "alt", "s"], "close": ["ctrl", "alt", "c"]},
+    "Darwin": {"buy": ["ctrl", "shift", "b"], "sell": ["ctrl", "shift", "s"], "close": ["ctrl", "shift", "c"]},
 }
 
 seen_ids = deque(maxlen=1000)
@@ -75,20 +75,11 @@ def press(cfg, name):
     log(f"  ส่งคีย์ {'+'.join(keys)} ({name}) แล้ว (ยืนยันผลที่หน้า TopstepX เอง)")
 
 
-def press_close(cfg):
-    """Close Position แล้ว (ถ้าเปิดไว้) Cancel All เพื่อไม่ให้ SL/TP ที่ค้างเหลือเป็นคำสั่งกำพร้า"""
-    press(cfg, "close")
-    if cfg.get("cancel_after_close", True):
-        time.sleep(cfg.get("cancel_delay_seconds", 0.1))
-        press(cfg, "cancel_all")
-
-
 def describe(cfg, action, close_first=False):
     keys = "+".join(cfg["hotkeys"][action])
     if action == "close":
-        extra = f" แล้ว {'+'.join(cfg['hotkeys']['cancel_all'])} (Cancel All)" if cfg.get("cancel_after_close", True) else ""
-        return f"กดคีย์ {keys} (Close Position){extra}"
-    pre = f"Close Position{' + Cancel All' if cfg.get('cancel_after_close', True) else ''} ก่อน แล้ว" if close_first else ""
+        return f"กดคีย์ {keys} (Close Position)"
+    pre = "Close Position ก่อน แล้ว" if close_first else ""
     return f"{pre}กดคีย์ {keys}"
 
 
@@ -101,13 +92,10 @@ def execute(cfg, action, event, t_recv=None, lag_ms=None, close_first=False):
         return
     log(f"{event} {action}" + (" (ปิดสถานะก่อน)" if close_first else ""))
     try:
-        if close_first:
-            press_close(cfg)
-            time.sleep(cfg.get("cancel_delay_seconds", 0.1))
-        if action == "close":
-            press_close(cfg)
-        else:
-            press(cfg, action)
+        if close_first:  # ใน brick เดียวกันที่ออกแล้วกลับทิศ: ปิดก่อน แล้วหน่วงสั้นๆ ค่อยเข้า
+            press(cfg, "close")
+            time.sleep(cfg.get("close_delay_seconds", 0.1))
+        press(cfg, action)
     except Exception as e:  # noqa: BLE001
         log(f"!! กดไม่สำเร็จ ({event} {action}): {e}  ตรวจสถานะบัญชีด้วยตัวเอง")
         return
