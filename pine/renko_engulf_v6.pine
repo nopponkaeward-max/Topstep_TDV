@@ -12,6 +12,13 @@ indicator("RENKO-ENGULF-v6", shorttitle="RNK-ENGREV", overlay=true, max_lines_co
 // ==========================================
 // --- 1. INPUTS ---
 // ==========================================
+// ---------- ENTRY  (เงื่อนไขเข้า) ----------
+entryMode  = input.string("Engulf", "Entry mode", options=["Engulf", "Reversal", "NoWick Reversal", "Engulf + Reversal", "Engulf + NoWick", "Reversal + NoWick", "All (Engulf + Reversal + NoWick)"], group="Entry Strategy", display=display.none,
+     tooltip="Engulf = เข้าเมื่อแท่งสีเดียวกันครอบ High-Low ของแท่งก่อนหน้า (แบบเดิม)\nReversal = Buy: มีแท่งแดงติดกันก่อนหน้า >= N แท่ง แล้วเกิดแท่งเขียวที่ High สูงกว่า และ Low ต่ำกว่าแท่งแดงล่าสุด / Sell: ตรงข้าม\nNoWick Reversal = Buy: มีแท่งแดงติดกัน >= N แท่ง แล้วเกิดแท่งเขียว โดย 'แท่งแดงที่ติดกับแท่งเขียว' และ 'แท่งเขียวที่เกิด' ต้อง **ไม่มีไส้ (no wick)** ทั้งคู่ (แท่งอื่นมีไส้ได้) / Sell: ตรงข้าม\nแบบที่มี + = ใช้หลายเงื่อนไขร่วมกัน ข้อไหนเกิดก่อนก็เข้า\nExit / TP / SL ใช้ค่าเดิมทุกโหมด")
+revMin     = input.int(4, "Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อ Entry mode มี Reversal", minval=1, maxval=50, group="Entry Strategy", display=display.none)
+nwMin      = input.int(4, "NoWick Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อ Entry mode มี NoWick", minval=1, maxval=50, group="Entry Strategy", display=display.none)
+nwTol      = input.float(0.0, "NoWick: ไส้ที่ยอมรับได้ (หน่วยราคา) 0 = ไม่มีไส้เลย", minval=0.0, step=0.01, group="Entry Strategy", display=display.none,
+     tooltip="แท่ง no wick = High เท่ากับด้านบนของตัวแท่ง และ Low เท่ากับด้านล่างของตัวแท่ง (บนกราฟ Renko ของ TradingView แท่งขึ้นมีไส้ล่าง / แท่งลงมีไส้บน)\nใส่ค่ามากกว่า 0 ถ้าอยากยอมให้มีไส้เล็กน้อย")
 prevModeIn = input.string("Immediate previous bar", "Compare with previous", options=["Immediate previous bar", "Last Bull/Bear"], group="Entry Strategy", display=display.none,
      tooltip="Immediate previous bar = แท่งก่อนหน้าทันทีต้องเป็นสีเดียวกัน แล้วแท่งปัจจุบันคลุม High-Low ของมัน\nLast Bull/Bear = (แบบเดิม) เทียบกับแท่งสีเดียวกันล่าสุด ข้ามแท่งสีตรงข้ามที่คั่นอยู่")
 tol        = input.float(0.0, "Tolerance (price)", minval=0.0, step=0.01, group="Entry Strategy", display=display.none, tooltip="ยอมให้ High/Low ของแท่งพลาดจากแท่งก่อนหน้าได้ไม่เกินค่านี้")
@@ -19,21 +26,8 @@ allowLong  = input.bool(true, "Enable Buy",  group="Entry Strategy", display=dis
 allowShort = input.bool(true, "Enable Sell", group="Entry Strategy", display=display.none)
 oneOrderOnly = input.bool(true, "One order at a time (เปิดได้ครั้งละ 1 ออเดอร์)", group="Entry Strategy", display=display.none,
      tooltip="เปิด = ถือได้ครั้งละ 1 ออเดอร์ สัญญาณใหม่ระหว่างถืออยู่จะถูกข้าม\nปิด = เจอสัญญาณทิศเดียวกันซ้ำจะเปิดออเดอร์เพิ่ม (ซ้อนไม้) แล้วปิดทั้งหมดเมื่อเจอแท่งตรงข้าม")
-entryMode  = input.string("Engulf", "Entry mode", options=["Engulf", "Reversal", "NoWick Reversal", "Engulf + Reversal", "Engulf + NoWick", "Reversal + NoWick", "All (Engulf + Reversal + NoWick)"], group="Entry Strategy", display=display.none,
-     tooltip="Engulf = เข้าเมื่อแท่งสีเดียวกันครอบ High-Low ของแท่งก่อนหน้า (แบบเดิม)\nReversal = Buy: มีแท่งแดงติดกันก่อนหน้า >= N แท่ง แล้วเกิดแท่งเขียวที่ High สูงกว่า และ Low ต่ำกว่าแท่งแดงล่าสุด / Sell: ตรงข้าม\nNoWick Reversal = Buy: มีแท่งแดงติดกัน >= N แท่ง แล้วเกิดแท่งเขียว โดย 'แท่งแดงที่ติดกับแท่งเขียว' และ 'แท่งเขียวที่เกิด' ต้อง **ไม่มีไส้ (no wick)** ทั้งคู่ (แท่งอื่นมีไส้ได้) / Sell: ตรงข้าม\nแบบที่มี + = ใช้หลายเงื่อนไขร่วมกัน ข้อไหนเกิดก่อนก็เข้า\nExit / TP / SL ใช้ค่าเดิมทุกโหมด")
-nwMin      = input.int(4, "NoWick Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อ Entry mode มี NoWick", minval=1, maxval=50, group="Entry Strategy", display=display.none)
-nwTol      = input.float(0.0, "NoWick: ไส้ที่ยอมรับได้ (หน่วยราคา) 0 = ไม่มีไส้เลย", minval=0.0, step=0.01, group="Entry Strategy", display=display.none,
-     tooltip="แท่ง no wick = High เท่ากับด้านบนของตัวแท่ง และ Low เท่ากับด้านล่างของตัวแท่ง (บนกราฟ Renko ของ TradingView แท่งขึ้นมีไส้ล่าง / แท่งลงมีไส้บน)\nใส่ค่ามากกว่า 0 ถ้าอยากยอมให้มีไส้เล็กน้อย")
-revMin     = input.int(4, "Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อ Entry mode มี Reversal", minval=1, maxval=50, group="Entry Strategy", display=display.none)
 
-tfEnable   = input.bool(false, "เปิดตัวกรองช่วงเวลางดเทรด (UTC+7)", group="Trading Hours (UTC+7)", display=display.none,
-     tooltip="เปิด = ไม่เปิดออเดอร์ใหม่ในช่วงเวลาที่กำหนดด้านล่าง (เวลาไทย UTC+7)\nการออกจากออเดอร์ที่เปิดอยู่ยังทำงานตามปกติแม้อยู่ในช่วงงดเทรด\nใช้กับสถิติย้อนหลังด้วย (สัญญาณในช่วงงดเทรดจะไม่ถูกนับ)")
-tfSess1    = input.session("0400-0600", "ช่วงงดเทรด 1 (HHMM-HHMM เวลาไทย)", group="Trading Hours (UTC+7)", display=display.none,
-     tooltip="รูปแบบ HHMM-HHMM เช่น 0400-0600 (ช่วงพักตลาด CME ประมาณ 04:00-05:00 หรือ 05:00-06:00 เวลาไทย ตามฤดูกาล) ข้ามเที่ยงคืนได้ เช่น 2300-0100\nเวลาเริ่ม = รวม / เวลาสิ้นสุด = ไม่รวม / ถ้าเวลาเริ่มเท่ากับสิ้นสุด (เช่น 0000-0000) = ไม่ใช้ช่วงนี้")
-tfSess2    = input.session("0000-0000", "ช่วงงดเทรด 2 (0000-0000 = ไม่ใช้)", group="Trading Hours (UTC+7)", display=display.none)
-tfSess3    = input.session("0000-0000", "ช่วงงดเทรด 3 (0000-0000 = ไม่ใช้)", group="Trading Hours (UTC+7)", display=display.none)
-showTfBg   = input.bool(true, "แรเงาแท่งในช่วงงดเทรด", group="Trading Hours (UTC+7)", display=display.none)
-
+// ---------- EXIT  (เงื่อนไขออก) ----------
 exitMode   = input.string("Opposite brick", "Exit mode", options=["Opposite brick", "N same-color boxes"], group="Exit Strategy", display=display.none,
      tooltip="Opposite brick = ออกเมื่อเจอ box สีตรงข้ามกับทิศที่ถือ (แบบเดิม)\nN same-color boxes = ออกเมื่อมี box สีเดียวกับทิศที่ถือเกิดขึ้นครบ N แท่ง (นับหลังแท่งที่เข้า)")
 exitN      = input.int(3, "N = จำนวน box สีเดียวกับทิศออเดอร์", minval=1, maxval=50, group="Exit Strategy", display=display.none,
@@ -43,61 +37,79 @@ exitOnOpp  = input.bool(true, "ออกเมื่อเจอ box สีต�
 countEntry = input.bool(false, "นับ box ที่เข้าออเดอร์เป็น box ที่ 1", group="Exit Strategy", display=display.none,
      tooltip="ปิด = เริ่มนับจากแท่งถัดจากแท่งที่เข้า (N=3 → ออกที่แท่งที่ 3 หลังเข้า)\nเปิด = แท่งที่เข้านับเป็น 1 (N=3 → ออกที่แท่งที่ 2 หลังเข้า)")
 
-showTradePath  = input.bool(true, "Show Trade Path Lines (เส้นโยงเปิด→ปิด)", group="Display & Stats", display=display.none)
-showEntryLine  = input.bool(true, "Show Entry Price Line + Label", group="Display & Stats", display=display.none)
-whMode     = input.string("TopstepX Clicker", "Alert mode (Any alert() function call)", options=["Text only (pop-up)", "OKX Signal Bot", "TopstepX Clicker"], group="Webhook", display=display.none,
+// ---------- TRADING HOURS  (งดเทรด UTC+7) ----------
+tfEnable   = input.bool(false, "เปิดตัวกรองช่วงเวลางดเทรด (UTC+7)", group="Trading Hours (UTC+7)", display=display.none,
+     tooltip="เปิด = ไม่เปิดออเดอร์ใหม่ในช่วงเวลาที่กำหนดด้านล่าง (เวลาไทย UTC+7)\nการออกจากออเดอร์ที่เปิดอยู่ยังทำงานตามปกติแม้อยู่ในช่วงงดเทรด\nใช้กับสถิติย้อนหลังด้วย (สัญญาณในช่วงงดเทรดจะไม่ถูกนับ)")
+tfSess1    = input.session("0400-0600", "ช่วงงดเทรด 1 (HHMM-HHMM เวลาไทย)", group="Trading Hours (UTC+7)", display=display.none,
+     tooltip="รูปแบบ HHMM-HHMM เช่น 0400-0600 (ช่วงพักตลาด CME ประมาณ 04:00-05:00 หรือ 05:00-06:00 เวลาไทย ตามฤดูกาล) ข้ามเที่ยงคืนได้ เช่น 2300-0100\nเวลาเริ่ม = รวม / เวลาสิ้นสุด = ไม่รวม / ถ้าเวลาเริ่มเท่ากับสิ้นสุด (เช่น 0000-0000) = ไม่ใช้ช่วงนี้")
+tfSess2    = input.session("0000-0000", "ช่วงงดเทรด 2 (0000-0000 = ไม่ใช้)", group="Trading Hours (UTC+7)", display=display.none)
+tfSess3    = input.session("0000-0000", "ช่วงงดเทรด 3 (0000-0000 = ไม่ใช้)", group="Trading Hours (UTC+7)", display=display.none)
+showTfBg   = input.bool(true, "แรเงาแท่งในช่วงงดเทรด", group="Trading Hours (UTC+7)", display=display.none)
+
+// ---------- WEBHOOK: เลือกรูปแบบข้อความ Alert ----------
+whMode     = input.string("TopstepX Clicker", "Alert mode (Any alert() function call)", options=["Text only (pop-up)", "OKX Signal Bot", "TopstepX Clicker"], group="Webhook · Alert Mode", display=display.none,
      tooltip="ใช้กับ Alert ที่เลือก Condition = 'Any alert() function call'\nText only = ข้อความอ่านง่ายสำหรับ pop-up/มือถือ/อีเมล (ไม่ส่งอะไรเข้า OKX)\nOKX Signal Bot = JSON สำหรับ OKX Signal Bot (ไม่ต้องมีเซิร์ฟเวอร์) ขนาดออเดอร์ตั้งที่ Bot\nTopstepX Clicker = JSON สำหรับบอทคลิก TopstepX บน PC/Mac (บังคับใช้ Immediate previous bar และ One order at a time)")
-whSignalToken = input.string("", "OKX signalToken (โหมด OKX Signal Bot)", group="Webhook", display=display.none, tooltip="คัดลอกจากหน้าสร้าง Signal ใน OKX")
-whSecret   = input.string("CHANGE_ME", "Webhook secret (โหมด TopstepX Clicker)", group="Webhook", display=display.none, tooltip="ต้องตรงกับ secret ใน bot/config.json")
-whInstId   = input.string("BTC-USDT-SWAP", "OKX instId", group="Webhook", display=display.none, tooltip="เช่น BTC-USDT-SWAP (= OKX:BTCUSDT.P)")
-okxSizeMode = input.string("Bot setting", "OKX ขนาดออเดอร์ที่ส่งตอนเข้า (โหมด OKX Signal Bot)", options=["Bot setting", "contract", "margin", "percentage_balance", "percentage_investment"], group="Webhook", display=display.none,
+
+// ---------- WEBHOOK: TopstepX  (บอทกดคีย์ลัดบนเครื่อง) ----------
+whSecret   = input.string("CHANGE_ME", "Webhook secret (โหมด TopstepX Clicker)", group="Webhook · TopstepX", display=display.none, tooltip="ต้องตรงกับ secret ใน bot/config.json")
+tsxExitVia = input.string("Close Position", "TopstepX: วิธีออกออเดอร์", options=["Close Position", "Opposite order"], group="Webhook · TopstepX", display=display.none,
+     tooltip="Close Position = ส่ง action 'close' ให้บอทกดคีย์ Close Position (+ Cancel All) ปลอดภัยแม้ SL ใน TopstepX ปิดสถานะไปก่อนแล้ว (ถ้า flat อยู่ ไม่เกิดอะไร)\nOpposite order = ส่ง buy/sell ตรงข้าม (แบบเดิม) ห้ามใช้คู่กับ SL ใน TopstepX เพราะถ้า SL ปิดไปแล้ว จะเปิดสถานะสวนทางโดยไม่ตั้งใจ\nต้องตั้งคีย์ลัด Close Position และ Cancel All ใน TopstepX และใน bot/config.json ให้ตรงกัน")
+testSend   = input.bool(false, "ส่งสัญญาณทดสอบไปบอท (ใช้ตอนสร้าง Alert ทดสอบเท่านั้น)", group="Webhook · TopstepX", display=display.none,
+     tooltip="เฉพาะโหมด TopstepX Clicker: เมื่อเปิด จะส่งสัญญาณทดสอบ 1 ครั้งทันทีที่สคริปต์/Alert เริ่มทำงานแบบ realtime เพื่อเช็กสายส่ง TradingView → Webhook → บอท\nอย่าเปิดไว้ใน Alert จริง! ให้สร้าง Alert ทดสอบแยก แล้วลบทิ้งหลังทดสอบ (ถ้าบอท dry_run=false บอทจะกดคีย์จริง)")
+testAct    = input.string("buy", "ทดสอบ action", options=["buy", "sell"], group="Webhook · TopstepX", display=display.none)
+
+// ---------- WEBHOOK: OKX Signal Bot ----------
+whSignalToken = input.string("", "OKX signalToken (โหมด OKX Signal Bot)", group="Webhook · OKX", display=display.none, tooltip="คัดลอกจากหน้าสร้าง Signal ใน OKX")
+whInstId   = input.string("BTC-USDT-SWAP", "OKX instId", group="Webhook · OKX", display=display.none, tooltip="เช่น BTC-USDT-SWAP (= OKX:BTCUSDT.P)")
+okxSizeMode = input.string("Bot setting", "OKX ขนาดออเดอร์ที่ส่งตอนเข้า (โหมด OKX Signal Bot)", options=["Bot setting", "contract", "margin", "percentage_balance", "percentage_investment"], group="Webhook · OKX", display=display.none,
      tooltip="Bot setting = ไม่ส่งขนาดไปกับสัญญาณ ใช้ขนาดที่ตั้งในหน้า Signal Bot ของ OKX (ถ้า Bot ไม่ได้ตั้ง OKX จะใช้ค่าเริ่มต้น = 100% ของยอดคงเหลือ (Bot คู่เดียว) หรือ 50% (Bot หลายคู่) ต่อการเข้า!)\ncontract = จำนวนสัญญา (จำนวนเต็ม) / margin = มาร์จิ้นเป็นจำนวนเงิน / percentage_balance = % ของยอดคงเหลือ / percentage_investment = % ของเงินลงทุนของ Bot\nหมายเหตุ: ถ้าทั้ง Bot และสัญญาณกำหนดขนาด OKX ใช้ค่าของ Bot ก่อน\nขาออกไม่ส่งขนาด (OKX ปิด 100% ของสถานะที่เปิดอยู่)")
-okxAmount  = input.float(1.0, "OKX amount (ตามชนิดที่เลือกด้านบน)", minval=0.01, step=1.0, group="Webhook", display=display.none,
+okxAmount  = input.float(1.0, "OKX amount (ตามชนิดที่เลือกด้านบน)", minval=0.01, step=1.0, group="Webhook · OKX", display=display.none,
      tooltip="contract: จำนวนเต็มบวก (ปัดให้เป็นจำนวนเต็ม) / margin: จำนวนเงินบวก / percentage_*: 0.01–100\nไม่ใช้เมื่อเลือก Bot setting")
+
+// ---------- DISPLAY  (การแสดงผลบนกราฟ) ----------
+showTradePath  = input.bool(true, "Show Trade Path Lines (เส้นโยงเปิด→ปิด)", group="Display", display=display.none)
+showEntryLine  = input.bool(true, "Show Entry Price Line + Label", group="Display", display=display.none)
+showTickLine = input.bool(true, "แสดงเส้นแนวตั้งสีทอง High-Low ของ brick ที่กำลังก่อตัว (ถัดจากแท่งล่าสุด)", group="Display", display=display.none,
+     tooltip="ยอดราคาสูง/ต่ำสุดที่วิ่งไปถึงตั้งแต่ brick ล่าสุดปิด (นับจาก tick สดตั้งแต่เปิดกราฟ) วาดเป็นเส้นแนวตั้งที่ช่องถัดจากแท่งล่าสุด")
+colTick      = input.color(color.new(#fbbf24, 0), "สีเส้น High-Low ของ brick ที่กำลังก่อตัว", group="Display", display=display.none)
+showBg         = input.bool(true, "Highlight bars in position", group="Display", display=display.none)
+orderLabelSizeStr   = input.string("Small", "Order Label Size", options=["Tiny","Small","Normal","Large","Huge"], group="Display", display=display.none)
+
+// ---------- STATS: ช่วงเวลาที่ดูสถิติ ----------
+statMode    = input.string("2. ย้อนหลังตามจำนวนเดือน (Months)", "▶ เลือกโหมดดูสถิติ", options=["0. วันนี้ (Today)", "1. ย้อนหลังตามจำนวนวัน (Days)", "2. ย้อนหลังตามจำนวนเดือน (Months)", "3. เจาะจงเดือนและปี (Specific Month)", "4. เลือกวันที่จากปฏิทิน (Pick Date)"], group="Stats · Period", display=display.none,
+     tooltip="0. วันนี้ = นับเฉพาะออเดอร์ที่เปิดในวันนี้ (ตามเวลา UTC +/- ด้านล่าง) และแสดงตารางรายออเดอร์ของวันนี้\n4. เลือกวันที่จากปฏิทิน = นับเฉพาะออเดอร์ที่เปิดในวันที่เลือกที่ช่อง [โหมด 4] และแสดงตารางรายออเดอร์ของวันนั้น")
+statDays    = input.int(30, "[โหมด 1] ย้อนหลัง (วัน)", minval=1, maxval=365, group="Stats · Period", display=display.none)
+statMonths  = input.int(9, "[โหมด 2] ย้อนหลัง (เดือน) [1-12]", minval=1, maxval=12, group="Stats · Period", display=display.none)
+statTargetM = input.string("August", "[โหมด 3] ระบุเดือน", options=["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], group="Stats · Period", display=display.none)
+statTargetY = input.int(0, "[โหมด 3] ระบุปี (0 = ปีปัจจุบัน)", minval=0, maxval=2100, group="Stats · Period", display=display.none)
+// ค่าเริ่มต้นเป็นเลข epoch มิลลิวินาที (const) = 13 Oct 2026 12:00 (UTC+7); timestamp() ใน v6 ได้ชนิด simple ใช้เป็น defval ไม่ได้
+statPickDate = input.time(1791867600000, "[โหมด 4] เลือกวันที่ (ปฏิทิน)", group="Stats · Period", display=display.none,
+     tooltip="กดช่องนี้เพื่อเลือกวันที่จากปฏิทิน (ใช้เฉพาะวันที่ ไม่สนเวลา) ต้องตั้ง UTC (+/-) ด้านล่างให้ตรงกับ timezone ของกราฟ\nดูย้อนหลังได้เท่าที่ TradingView โหลดประวัติกราฟไว้")
+statsTzIncr = input.int(7, "UTC (+/-) สำหรับตัดวันของตาราง", minval=-12, maxval=14, group="Stats · Period", display=display.none, tooltip="ตั้งให้ตรงกับ timezone ของกราฟ (ไทย = +7)")
+
+// ---------- STATS: ตารางและตำแหน่ง ----------
+showStatsTable = input.bool(true, "Show Stats Table", group="Stats · Tables", display=display.none)
+showDailyTable   = input.bool(false, "Show Daily Stats Table (รายวันของเดือน)", group="Stats · Tables", display=display.none)
+showMonthlyTable = input.bool(true, "Show Monthly Stats Table (สรุปรายเดือน)", group="Stats · Tables", display=display.none)
+showWeekdayTable = input.bool(true, "Show Weekday Stats (Sun-Sat)", group="Stats · Tables", display=display.none,
+     tooltip="inW / inL = streak ชนะ/แพ้ที่ยาวสุด แยกตามวันในสัปดาห์\n🔥 = วันที่มีส่วนใน max loss streak มากสุด")
+showTodayTable = input.bool(false, "Show Day Trades Table (รายออเดอร์ของวันที่เลือก/วันนี้)", group="Stats · Tables", display=display.none,
+     tooltip="แสดงตารางรายออเดอร์ของวันนี้/วันที่เลือก (เวลาเข้า/ออก ราคา จุด และ R) แสดงอัตโนมัติเมื่อเลือกโหมดสถิติ 0 หรือ 4")
+todayMaxRows = input.int(15, "จำนวนออเดอร์ล่าสุดที่แสดงในตารางรายออเดอร์ (0 = แสดงทั้งหมด)", minval=0, maxval=500, group="Stats · Tables", display=display.none,
+     tooltip="0 = แสดงออเดอร์ทั้งหมดของวันที่ดู (ตารางยืดตามจำนวนออเดอร์ สูงสุดที่โค้ดจำกัดไว้ 95 แถว กันตารางใหญ่เกินจอ/เกินข้อจำกัดของ TradingView)")
+showSettingsTable = input.bool(false, "Show Settings Summary Table", group="Stats · Tables", display=display.none)
+mainTablePosStr     = input.string("Bottom Right",  "▶ ตำแหน่งตารางหลัก (Stats)",      options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Stats · Tables", display=display.none)
+todayTablePosStr    = input.string("Middle Right",  "▶ ตำแหน่งตารางรายออเดอร์วันนี้", options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Stats · Tables", display=display.none)
+dailyTablePosStr    = input.string("Middle Left",   "▶ ตำแหน่งตาราง Daily",            options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Stats · Tables", display=display.none)
+monthlyTablePosStr  = input.string("Bottom Center", "▶ ตำแหน่งตาราง Monthly",          options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Stats · Tables", display=display.none)
+weekdayTablePosStr  = input.string("Top Right",     "▶ ตำแหน่งตาราง Weekday",          options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Stats · Tables", display=display.none)
+settingsTablePosStr = input.string("Bottom Left",   "▶ ตำแหน่งตาราง Settings Summary", options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Stats · Tables", display=display.none)
+
+// ---------- ค่าที่คำนวณจากการตั้งค่าด้านบน (ไม่ใช่ช่องตั้งค่า) ----------
 bool   tsxMode  = whMode == "TopstepX Clicker"
 // โหมด TopstepX Clicker: บังคับ Immediate previous bar (ไม่กลับทิศใน brick เดียว) และถือได้ครั้งละ 1 ออเดอร์
 string prevMode = tsxMode ? "Immediate previous bar" : prevModeIn
 bool   oneOnly  = tsxMode ? true : oneOrderOnly
-tsxExitVia = input.string("Close Position", "TopstepX: วิธีออกออเดอร์", options=["Close Position", "Opposite order"], group="Webhook", display=display.none,
-     tooltip="Close Position = ส่ง action 'close' ให้บอทกดคีย์ Close Position (+ Cancel All) ปลอดภัยแม้ SL ใน TopstepX ปิดสถานะไปก่อนแล้ว (ถ้า flat อยู่ ไม่เกิดอะไร)\nOpposite order = ส่ง buy/sell ตรงข้าม (แบบเดิม) ห้ามใช้คู่กับ SL ใน TopstepX เพราะถ้า SL ปิดไปแล้ว จะเปิดสถานะสวนทางโดยไม่ตั้งใจ\nต้องตั้งคีย์ลัด Close Position และ Cancel All ใน TopstepX และใน bot/config.json ให้ตรงกัน")
-testSend   = input.bool(false, "ส่งสัญญาณทดสอบไปบอท (ใช้ตอนสร้าง Alert ทดสอบเท่านั้น)", group="Webhook", display=display.none,
-     tooltip="เฉพาะโหมด TopstepX Clicker: เมื่อเปิด จะส่งสัญญาณทดสอบ 1 ครั้งทันทีที่สคริปต์/Alert เริ่มทำงานแบบ realtime เพื่อเช็กสายส่ง TradingView → Webhook → บอท\nอย่าเปิดไว้ใน Alert จริง! ให้สร้าง Alert ทดสอบแยก แล้วลบทิ้งหลังทดสอบ (ถ้าบอท dry_run=false บอทจะกดคีย์จริง)")
-testAct    = input.string("buy", "ทดสอบ action", options=["buy", "sell"], group="Webhook", display=display.none)
-
-showTickLine = input.bool(true, "แสดงเส้นแนวตั้งสีทอง High-Low ของ brick ที่กำลังก่อตัว (ถัดจากแท่งล่าสุด)", group="Display & Stats", display=display.none,
-     tooltip="ยอดราคาสูง/ต่ำสุดที่วิ่งไปถึงตั้งแต่ brick ล่าสุดปิด (นับจาก tick สดตั้งแต่เปิดกราฟ) วาดเป็นเส้นแนวตั้งที่ช่องถัดจากแท่งล่าสุด")
-colTick      = input.color(color.new(#fbbf24, 0), "สีเส้น High-Low ของ brick ที่กำลังก่อตัว", group="Display & Stats", display=display.none)
-showBg         = input.bool(true, "Highlight bars in position", group="Display & Stats", display=display.none)
-showStatsTable = input.bool(true, "Show Stats Table", group="Display & Stats", display=display.none)
-showDailyTable   = input.bool(false, "Show Daily Stats Table (รายวันของเดือน)", group="Display & Stats", display=display.none)
-showMonthlyTable = input.bool(true, "Show Monthly Stats Table (สรุปรายเดือน)", group="Display & Stats", display=display.none)
-showWeekdayTable = input.bool(true, "Show Weekday Stats (Sun-Sat)", group="Display & Stats", display=display.none,
-     tooltip="inW / inL = streak ชนะ/แพ้ที่ยาวสุด แยกตามวันในสัปดาห์\n🔥 = วันที่มีส่วนใน max loss streak มากสุด")
-showSettingsTable = input.bool(false, "Show Settings Summary Table", group="Display & Stats", display=display.none)
-
-statMode    = input.string("2. ย้อนหลังตามจำนวนเดือน (Months)", "▶ เลือกโหมดดูสถิติ", options=["0. วันนี้ (Today)", "1. ย้อนหลังตามจำนวนวัน (Days)", "2. ย้อนหลังตามจำนวนเดือน (Months)", "3. เจาะจงเดือนและปี (Specific Month)", "4. เลือกวันที่จากปฏิทิน (Pick Date)"], group="Display & Stats", display=display.none,
-     tooltip="0. วันนี้ = นับเฉพาะออเดอร์ที่เปิดในวันนี้ (ตามเวลา UTC +/- ด้านล่าง) และแสดงตารางรายออเดอร์ของวันนี้\n4. เลือกวันที่จากปฏิทิน = นับเฉพาะออเดอร์ที่เปิดในวันที่เลือกที่ช่อง [โหมด 4] และแสดงตารางรายออเดอร์ของวันนั้น")
-statDays    = input.int(30, "[โหมด 1] ย้อนหลัง (วัน)", minval=1, maxval=365, group="Display & Stats", display=display.none)
-statMonths  = input.int(9, "[โหมด 2] ย้อนหลัง (เดือน) [1-12]", minval=1, maxval=12, group="Display & Stats", display=display.none)
-statTargetM = input.string("August", "[โหมด 3] ระบุเดือน", options=["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], group="Display & Stats", display=display.none)
-statTargetY = input.int(0, "[โหมด 3] ระบุปี (0 = ปีปัจจุบัน)", minval=0, maxval=2100, group="Display & Stats", display=display.none)
-showTodayTable = input.bool(false, "Show Day Trades Table (รายออเดอร์ของวันที่เลือก/วันนี้)", group="Display & Stats", display=display.none,
-     tooltip="แสดงตารางรายออเดอร์ของวันนี้/วันที่เลือก (เวลาเข้า/ออก ราคา จุด และ R) แสดงอัตโนมัติเมื่อเลือกโหมดสถิติ 0 หรือ 4")
-todayMaxRows = input.int(15, "จำนวนออเดอร์ล่าสุดที่แสดงในตารางรายออเดอร์ (0 = แสดงทั้งหมด)", minval=0, maxval=500, group="Display & Stats", display=display.none,
-     tooltip="0 = แสดงออเดอร์ทั้งหมดของวันที่ดู (ตารางยืดตามจำนวนออเดอร์ สูงสุดที่โค้ดจำกัดไว้ 95 แถว กันตารางใหญ่เกินจอ/เกินข้อจำกัดของ TradingView)")
-// ค่าเริ่มต้นเป็นเลข epoch มิลลิวินาที (const) = 13 Oct 2026 12:00 (UTC+7); timestamp() ใน v6 ได้ชนิด simple ใช้เป็น defval ไม่ได้
-statPickDate = input.time(1791867600000, "[โหมด 4] เลือกวันที่ (ปฏิทิน)", group="Display & Stats", display=display.none,
-     tooltip="กดช่องนี้เพื่อเลือกวันที่จากปฏิทิน (ใช้เฉพาะวันที่ ไม่สนเวลา) ต้องตั้ง UTC (+/-) ด้านล่างให้ตรงกับ timezone ของกราฟ\nดูย้อนหลังได้เท่าที่ TradingView โหลดประวัติกราฟไว้")
-statsTzIncr = input.int(7, "UTC (+/-) สำหรับตัดวันของตาราง", minval=-12, maxval=14, group="Display & Stats", display=display.none, tooltip="ตั้งให้ตรงกับ timezone ของกราฟ (ไทย = +7)")
-
-settingsTablePosStr = input.string("Bottom Left",   "▶ ตำแหน่งตาราง Settings Summary", options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Display & Stats", display=display.none)
-dailyTablePosStr    = input.string("Middle Left",   "▶ ตำแหน่งตาราง Daily",            options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Display & Stats", display=display.none)
-monthlyTablePosStr  = input.string("Bottom Center", "▶ ตำแหน่งตาราง Monthly",          options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Display & Stats", display=display.none)
-weekdayTablePosStr  = input.string("Top Right",     "▶ ตำแหน่งตาราง Weekday",          options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Display & Stats", display=display.none)
-todayTablePosStr    = input.string("Middle Right",  "▶ ตำแหน่งตารางรายออเดอร์วันนี้", options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Display & Stats", display=display.none)
-mainTablePosStr     = input.string("Bottom Right",  "▶ ตำแหน่งตารางหลัก (Stats)",      options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Display & Stats", display=display.none)
-orderLabelSizeStr   = input.string("Small", "Order Label Size", options=["Tiny","Small","Normal","Large","Huge"], group="Display & Stats", display=display.none)
-
 orderLabelSize = orderLabelSizeStr == "Tiny" ? size.tiny : orderLabelSizeStr == "Normal" ? size.normal : orderLabelSizeStr == "Large" ? size.large : orderLabelSizeStr == "Huge" ? size.huge : size.small
 
 // ==========================================
