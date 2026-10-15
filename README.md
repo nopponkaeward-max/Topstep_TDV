@@ -1,6 +1,6 @@
-# TopstepX Clicker: Renko Engulf (TradingView) → คลิกปุ่ม Buy/Sell บน TopstepX
+# TopstepX Clicker: Renko Engulf (TradingView) → กดคีย์ลัด Buy/Sell บน TopstepX
 
-บอทรันบน PC/Mac ของคุณ รับ Webhook จาก TradingView แล้ว **คลิกปุ่ม Buy/Sell Market ในหน้า TopstepX** (หรือกดคีย์ลัด ถ้าคีย์ลัดของ TopstepX ใช้งานได้บนเครื่องคุณ) ไม่ใช้ API ไม่ผ่านบริการตัวกลาง และ **ไม่ตรวจสถานะบัญชี** Indicator สั่งอะไร บอทกดตามนั้น
+บอทรันบน PC/Mac ของคุณ รับ Webhook จาก TradingView แล้ว **คลิกปุ่ม Buy/Sell Market ในหน้า TopstepX** ไม่ใช้ API ไม่ผ่านบริการตัวกลาง และ **ไม่ตรวจสถานะบัญชี** Indicator สั่งอะไร บอทกดตามนั้น
 
 ```
 Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTTPS) → bot/topstepx_bot.py → คลิกปุ่มบน TopstepX
@@ -88,20 +88,12 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 - **log ที่ขึ้นว่าคลิก/กดแล้ว ไม่ได้ยืนยันว่าออเดอร์เข้า** ดูผลที่หน้า Positions ของ TopstepX เอง
 - **เริ่มด้วย `dry_run: true` และบัญชี Practice เสมอ**
 
-## 1) เลือกโหมด (`mode` ใน `bot/config.json`)
-
-### `click` (ค่าเริ่มต้น แนะนำถ้าคีย์ลัด TopstepX ใช้ไม่ได้)
-บอทคลิกปุ่ม Buy/Sell บนหน้าจอตามพิกัดที่บันทึกด้วย `calibrate` ไม่ขึ้นกับคีย์ลัดและภาษาของคีย์บอร์ด
-- ตั้งขนาดออเดอร์ (และ stop/target ถ้าต้องการ) ในแผงเทรด TopstepX ให้พร้อมก่อน ปุ่ม Buy/Sell ส่งออเดอร์ตามค่าที่ตั้งไว้ ณ ตอนนั้น
-- ถ้า TopstepX ถามยืนยันก่อนส่งออเดอร์ `calibrate` จะบันทึกปุ่มยืนยันให้ด้วย (ตอบ `y`)
-- **หลัง calibrate ห้ามขยับ ย่อ ขยาย หรือซูมหน้าต่าง TopstepX** และอย่าเปลี่ยนความละเอียดจอ (บอทเช็กขนาดจอ ถ้าเปลี่ยนจะไม่ยอมคลิกและให้ calibrate ใหม่) ถ้าจัดวางแผงเทรดใหม่ ต้อง calibrate ใหม่
-- บอทย้ายเมาส์ไปคลิกแล้วย้ายกลับตำแหน่งเดิม (ปิดได้ด้วย `"restore_mouse": false`)
-
-### `hotkey`
-กดคีย์ลัด Buy/Sell Market (ตั้ง `"mode": "hotkey"`) ใช้ได้เมื่อ TopstepX รับคีย์ลัดบนเครื่องคุณ (กดมือแล้วออเดอร์เข้า)
-- ตั้งคีย์ลัดในหน้า Hotkeys ของ TopstepX: Windows `Ctrl+Alt+B / Ctrl+Alt+S`, macOS `Control+Shift+B / Control+Shift+S` แล้วให้ `hotkeys` ใน config ตรงกัน
+## 1) ตั้งคีย์ลัดใน TopstepX
+บอทกดคีย์ลัด Buy/Sell Market ใส่หน้า TopstepX (ไม่มีโหมดคลิกแล้ว ถ้าอยากกลับไปใช้ ดูโค้ดเก่าในประวัติ git commit `33005dd`)
+- ตั้งคีย์ลัดในหน้า Hotkeys ของ TopstepX: Windows `Ctrl+Alt+B / Ctrl+Alt+S`, macOS `Control+Shift+B / Control+Shift+S` แล้วให้ `hotkeys` ใน `config.json` ตรงกัน (ไม่ใส่ = ใช้ค่านี้ตามระบบปฏิบัติการ)
+- ตั้งขนาดออเดอร์ (และ stop/target ถ้าต้องการ) ในแผงเทรด TopstepX ให้พร้อมก่อน คีย์ลัดส่งออเดอร์ตามค่าที่ตั้งไว้ ณ ตอนนั้น
 - ต้องเปิด Keyboard layout เป็นภาษาอังกฤษ (ถ้าเป็นไทย ตัวอักษรที่ส่งไม่ตรง คีย์ลัดไม่ทำงาน)
-- ทดสอบว่าคีย์ถึงเบราว์เซอร์ไหมด้วย `bot/keytest.html`
+- กดมือทดสอบก่อนว่าคีย์ลัดส่งออเดอร์ได้ แล้วทดสอบว่าคีย์ถึงเบราว์เซอร์ไหมด้วย `bot/keytest.html`
 
 ## 2) ติดตั้งบอท
 ```bash
@@ -111,13 +103,11 @@ cp config.example.json config.json
 ```
 แก้ `config.json`:
 - `secret` รหัสสุ่มอย่างน้อย 16 ตัว (ใช้ค่าเดียวกันใน Indicator) บอทไม่ยอมรัน ถ้ายังเป็นค่าตัวอย่าง
-- **หน้าต่างโฟกัส:** บอท **ไม่ตรวจและไม่ดึงหน้าต่าง** TopstepX กดคีย์/คลิกใส่หน้าต่างที่โฟกัสอยู่ตอนนั้นเลย (เร็วที่สุด) จึงต้องให้หน้า TopstepX อยู่หน้าสุดและโฟกัสตลอดเวลาเทรด ถ้าไปใช้โปรแกรมอื่น คีย์จะตกที่โปรแกรมนั้นและออเดอร์ไม่ออก (log จะยังบอกว่าส่งคีย์แล้ว)
+- **หน้าต่างโฟกัส:** บอท **ไม่ตรวจและไม่ดึงหน้าต่าง** TopstepX กดคีย์ใส่หน้าต่างที่โฟกัสอยู่ตอนนั้นเลย (เร็วที่สุด) จึงต้องให้หน้า TopstepX อยู่หน้าสุดและโฟกัสตลอดเวลาเทรด ถ้าไปใช้โปรแกรมอื่น คีย์จะตกที่โปรแกรมนั้นและออเดอร์ไม่ออก (log จะยังบอกว่าส่งคีย์แล้ว)
 - macOS ให้สิทธิ์ Accessibility แก่ Terminal ที่รันบอท (System Settings → Privacy & Security)
 - ปล่อย `dry_run: true` ไว้ก่อน
 
-**โหมด click:** เปิด TopstepX ไว้ตำแหน่งที่ใช้เทรดจริง แล้วรัน `python3 topstepx_bot.py calibrate` ทำตามที่บอกบนจอ (วางเมาส์บนปุ่ม Buy แล้วปุ่ม Sell ภายใน 5 วินาทีต่อปุ่ม) ค่าจะถูกบันทึกลง `config.json`
-
-ทดสอบ: `python3 topstepx_bot.py test buy` (ตอน dry-run จะแค่พิมพ์ข้อความว่าจะคลิกที่ไหน ตั้ง `dry_run: false` บนบัญชี Practice เพื่อทดสอบคลิกจริง)
+ทดสอบ: `python3 topstepx_bot.py test buy` (ตอน dry-run จะแค่พิมพ์ข้อความว่าจะกดคีย์อะไร ตั้ง `dry_run: false` บนบัญชี Practice เพื่อทดสอบกดจริง)
 
 ## 3) อุโมงค์ Webhook (ngrok)
 TradingView เรียกเข้าเครื่องคุณตรงๆ ไม่ได้ ต้องมี URL HTTPS สาธารณะที่ส่งต่อมาที่บอท (`127.0.0.1:8765`) เราใช้ **ngrok**
@@ -208,11 +198,7 @@ TradingView เรียกเข้าเครื่องคุณตรง�
 ## ค่าใน `bot/config.json`
 | ค่า | ความหมาย |
 |---|---|
-| `mode` | `click` (ค่าเริ่มต้น) หรือ `hotkey` |
 | `dry_run` | `true` = ไม่ทำจริง |
-| `buttons`, `screen_size` | ตำแหน่งปุ่มและขนาดจอ บันทึกโดย `calibrate` (โหมด click) |
-| `restore_mouse` | ย้ายเมาส์กลับที่เดิมหลังคลิก (ค่าเริ่มต้น true) |
-| `confirm_delay_seconds` | รอก่อนคลิกปุ่มยืนยัน (ถ้ามี) |
 | `max_age_seconds` | ทิ้งสัญญาณที่เก่าเกินกี่วินาที (0 = ไม่เช็ก, ต้องให้นาฬิกาเครื่องตรงเวลา) |
 | `key_hold_seconds` | เวลาค้างคีย์ก่อนปล่อย (ค่าเริ่มต้น 0.04 วินาที) ถ้า TopstepX จับคีย์ไม่ติดให้เพิ่มเป็น 0.08–0.1 |
 | `hotkeys` | (โหมด hotkey) ไม่ใส่ = ใช้ค่าแนะนำตามระบบปฏิบัติการ |

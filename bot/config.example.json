@@ -1,10 +1,7 @@
 {
   "secret": "เปลี่ยนเป็นรหัสสุ่มยาวๆ อย่างน้อย 16 ตัว ให้ตรงกับ Indicator",
-  "mode": "click",
   "dry_run": true,
   "host": "127.0.0.1",
   "port": 8765,
-  "max_age_seconds": 120,
-  "restore_mouse": true,
-  "confirm_delay_seconds": 0.5
+  "max_age_seconds": 120
 }
