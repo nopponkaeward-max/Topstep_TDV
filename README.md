@@ -1,9 +1,9 @@
 # TopstepX Clicker: Renko Engulf (TradingView) → กดคีย์ลัด Buy/Sell บน TopstepX
 
-บอทรันบน PC/Mac ของคุณ รับ Webhook จาก TradingView แล้ว **คลิกปุ่ม Buy/Sell Market ในหน้า TopstepX** ไม่ใช้ API ไม่ผ่านบริการตัวกลาง และ **ไม่ตรวจสถานะบัญชี** Indicator สั่งอะไร บอทกดตามนั้น
+บอทรันบน PC/Mac ของคุณ รับ Webhook จาก TradingView แล้ว **กดคีย์ลัด Buy/Sell Market ในหน้า TopstepX** ไม่ใช้ API ไม่ผ่านบริการตัวกลาง และ **ไม่ตรวจสถานะบัญชี** Indicator สั่งอะไร บอทกดตามนั้น
 
 ```
-Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTTPS) → bot/topstepx_bot.py → คลิกปุ่มบน TopstepX
+Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTTPS) → bot/topstepx_bot.py → กดคีย์ลัดบน TopstepX
 ```
 
 ## ไฟล์
@@ -15,10 +15,10 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 
 | เหตุการณ์ใน Indicator | บอทกด |
 |---|---|
-| เข้า long | คลิก Buy 1 ครั้ง |
-| ออก long (เจอ brick ขาลง) | คลิก Sell 1 ครั้ง |
-| เข้า short | คลิก Sell 1 ครั้ง |
-| ออก short (เจอ brick ขาขึ้น) | คลิก Buy 1 ครั้ง |
+| เข้า long | กด Buy 1 ครั้ง |
+| ออก long (เจอ brick ขาลง) | กด Sell 1 ครั้ง |
+| เข้า short | กด Sell 1 ครั้ง |
+| ออก short (เจอ brick ขาขึ้น) | กด Buy 1 ครั้ง |
 
 บอทกด **1 ครั้งต่อสัญญาณ** จำนวนสัญญาตั้งไว้ใน TopstepX แล้ว (ไม่มี qty ใน Indicator/บอท) เข้า-ออกใช้ขนาดเดียวกัน จึงปิดสถานะพอดี
 
@@ -85,7 +85,7 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 - **Indicator ไม่มี stop loss** ถือจนเจอ brick ตรงข้าม ตั้ง bracket ในแผงเทรด TopstepX หรือเฝ้าดู และระวัง Daily Loss Limit
 - ราคาเข้าจริงไม่เท่าราคาปิด brick ในตาราง Stats (มี latency ของ Alert + การกด)
 - เครื่องต้องเปิดอยู่ ไม่หลับ ไม่ล็อกจอ และหน้า TopstepX ต้องเป็นแท็บที่แสดงอยู่ **อยู่หน้าสุด ไม่มีหน้าต่างอื่นบังปุ่ม Buy/Sell** และอยู่ตำแหน่ง/ขนาด/zoom เดิมตอน calibrate (ขยับแล้วคลิกพลาด)
-- **log ที่ขึ้นว่าคลิก/กดแล้ว ไม่ได้ยืนยันว่าออเดอร์เข้า** ดูผลที่หน้า Positions ของ TopstepX เอง
+- **log ที่ขึ้นว่ากดคีย์แล้ว ไม่ได้ยืนยันว่าออเดอร์เข้า** ดูผลที่หน้า Positions ของ TopstepX เอง
 - **เริ่มด้วย `dry_run: true` และบัญชี Practice เสมอ**
 
 ## 1) ตั้งคีย์ลัดใน TopstepX
@@ -201,6 +201,6 @@ TradingView เรียกเข้าเครื่องคุณตรง�
 | `dry_run` | `true` = ไม่ทำจริง |
 | `max_age_seconds` | ทิ้งสัญญาณที่เก่าเกินกี่วินาที (0 = ไม่เช็ก, ต้องให้นาฬิกาเครื่องตรงเวลา) |
 | `key_hold_seconds` | เวลาค้างคีย์ก่อนปล่อย (ค่าเริ่มต้น 0.04 วินาที) ถ้า TopstepX จับคีย์ไม่ติดให้เพิ่มเป็น 0.08–0.1 |
-| `hotkeys` | (โหมด hotkey) ไม่ใส่ = ใช้ค่าแนะนำตามระบบปฏิบัติการ |
+| `hotkeys` | ไม่ใส่ = ใช้ค่าแนะนำตามระบบปฏิบัติการ |
 
 หยุดฉุกเฉิน: ลากเมาส์ไปมุมซ้ายบนของจอ หรือปิดบอท (Ctrl+C)
