@@ -12,7 +12,6 @@
 import json
 import platform
 import queue
-import subprocess
 import sys
 import threading
 import time
@@ -61,43 +60,9 @@ def gui():
     return pyautogui
 
 
-def mac_front_is(name):
-    """macOS: แอปที่อยู่หน้าสุดตอนนี้ใช่ name ไหม (เช็กเร็ว <1ms ผ่าน AppKit ที่มากับ pyobjc ของ pyautogui)"""
-    try:
-        from AppKit import NSWorkspace
-    except Exception:  # noqa: BLE001
-        return False
-    app = NSWorkspace.sharedWorkspace().frontmostApplication()
-    return app is not None and (app.localizedName() or "").lower() == name.lower()
-
-
-def focus_window(cfg):
-    """ดึงหน้าต่าง TopstepX ขึ้นมาโฟกัส (ถ้าอยู่หน้าสุดแล้วจะข้ามทันที ไม่เสียเวลา) คีย์ลัดทำงานเฉพาะหน้าต่างที่โฟกัส"""
-    system = platform.system()
-    if system == "Darwin" and cfg.get("focus_app"):
-        if mac_front_is(cfg["focus_app"]):
-            return
-        subprocess.run(["osascript", "-e", f'tell application "{cfg["focus_app"]}" to activate'], check=False)
-        time.sleep(cfg.get("focus_delay_seconds", 0.25))
-    elif system == "Windows" and cfg.get("focus_title"):
-        import pygetwindow as gw  # pip install pygetwindow
-
-        active = gw.getActiveWindow()
-        if active is not None and cfg["focus_title"].lower() in (active.title or "").lower():
-            return
-        wins = gw.getWindowsWithTitle(cfg["focus_title"])
-        if not wins:
-            raise RuntimeError(f"ไม่พบหน้าต่างที่ชื่อมี '{cfg['focus_title']}'")
-        if wins[0].isMinimized:
-            wins[0].restore()
-        wins[0].activate()
-        time.sleep(cfg.get("focus_delay_seconds", 0.25))
-
-
 def press(cfg, action):
     keys = cfg["hotkeys"][action]
     gui_ = gui()
-    focus_window(cfg)
     # กดทีละปุ่มแล้วค้างไว้สั้นๆ แทน hotkey() ที่กด-ปล่อยเร็วจนเว็บบางตัวจับคีย์ไม่ทัน
     hold = cfg.get("key_hold_seconds", 0.04)
     pressed = []
@@ -121,7 +86,6 @@ def click_button(cfg, action):
     saved = cfg.get("screen_size")
     if saved and tuple(saved) != tuple(gui_.size()):
         raise RuntimeError(f"ขนาดหน้าจอเปลี่ยนไป (ตอน calibrate {saved}, ตอนนี้ {list(gui_.size())}) ให้ calibrate ใหม่")
-    focus_window(cfg)
     origin = gui_.position()
 
     def click(pt, label):
@@ -244,13 +208,10 @@ def cmd_run(cfg):
         missing = [a for a in ACTIONS if not cfg.get("buttons", {}).get(a)]
         if missing:
             sys.exit(f"ยังไม่ได้บันทึกตำแหน่งปุ่ม {', '.join(missing)} ให้รัน: python3 topstepx_bot.py calibrate")
-    if not cfg.get("focus_app") and not cfg.get("focus_title"):
-        log("คำเตือน: ไม่ได้ตั้ง focus_app/focus_title บอทจะทำงานกับหน้าจอ/หน้าต่างตามที่เป็นอยู่ตอนนั้น "
-            "ถ้าหน้า TopstepX ไม่ได้อยู่หน้าสุด คลิก/คีย์จะไปผิดที่ (แม้ log จะบอกว่าทำแล้ว)")
+    log("หมายเหตุ: บอทกดคีย์/คลิกใส่หน้าต่างที่โฟกัสอยู่ตอนนั้น (ไม่ได้ตรวจหรือดึงหน้าต่าง TopstepX) "
+        "ต้องให้หน้า TopstepX อยู่หน้าสุดและโฟกัสตลอดเวลาเทรด")
     try:  # อุ่นเครื่อง: import pyautogui และเรียกครั้งแรกตอนเริ่ม ไม่ให้ออเดอร์แรกช้ากว่าปกติ
         gui().position()
-        if platform.system() == "Darwin" and cfg.get("focus_app"):
-            mac_front_is(cfg["focus_app"])
     except Exception as e:  # noqa: BLE001
         log(f"คำเตือน: อุ่นเครื่อง pyautogui ไม่สำเร็จ ({e})")
     threading.Thread(target=worker, args=(cfg,), daemon=True).start()

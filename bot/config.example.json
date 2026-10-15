@@ -5,7 +5,6 @@
   "host": "127.0.0.1",
   "port": 8765,
   "max_age_seconds": 120,
-  "focus_app": "Google Chrome",
   "restore_mouse": true,
   "confirm_delay_seconds": 0.5
 }
