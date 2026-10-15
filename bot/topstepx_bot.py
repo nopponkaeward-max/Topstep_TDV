@@ -57,25 +57,41 @@ def gui():
     import pyautogui  # import ตอนใช้ จะได้ตรวจโค้ดบนเครื่องไม่มีจอได้
 
     pyautogui.FAILSAFE = True  # ลากเมาส์ไปมุมซ้ายบนของจอ = หยุดฉุกเฉิน
-    pyautogui.PAUSE = 0.05
+    pyautogui.PAUSE = 0  # ค่าเริ่มต้น 0.1 วินาทีต่อคำสั่ง ทำให้ช้า (กดคีย์ 6 คำสั่ง = เสีย ~0.3-0.6 วินาที)
     return pyautogui
 
 
+def mac_front_is(name):
+    """macOS: แอปที่อยู่หน้าสุดตอนนี้ใช่ name ไหม (เช็กเร็ว <1ms ผ่าน AppKit ที่มากับ pyobjc ของ pyautogui)"""
+    try:
+        from AppKit import NSWorkspace
+    except Exception:  # noqa: BLE001
+        return False
+    app = NSWorkspace.sharedWorkspace().frontmostApplication()
+    return app is not None and (app.localizedName() or "").lower() == name.lower()
+
+
 def focus_window(cfg):
-    """ดึงหน้าต่าง TopstepX ขึ้นมาโฟกัส คีย์ลัดทำงานเฉพาะหน้าต่างที่โฟกัส"""
+    """ดึงหน้าต่าง TopstepX ขึ้นมาโฟกัส (ถ้าอยู่หน้าสุดแล้วจะข้ามทันที ไม่เสียเวลา) คีย์ลัดทำงานเฉพาะหน้าต่างที่โฟกัส"""
     system = platform.system()
     if system == "Darwin" and cfg.get("focus_app"):
+        if mac_front_is(cfg["focus_app"]):
+            return
         subprocess.run(["osascript", "-e", f'tell application "{cfg["focus_app"]}" to activate'], check=False)
+        time.sleep(cfg.get("focus_delay_seconds", 0.25))
     elif system == "Windows" and cfg.get("focus_title"):
         import pygetwindow as gw  # pip install pygetwindow
 
+        active = gw.getActiveWindow()
+        if active is not None and cfg["focus_title"].lower() in (active.title or "").lower():
+            return
         wins = gw.getWindowsWithTitle(cfg["focus_title"])
         if not wins:
             raise RuntimeError(f"ไม่พบหน้าต่างที่ชื่อมี '{cfg['focus_title']}'")
         if wins[0].isMinimized:
             wins[0].restore()
         wins[0].activate()
-    time.sleep(cfg.get("focus_delay_seconds", 0.3))
+        time.sleep(cfg.get("focus_delay_seconds", 0.25))
 
 
 def press(cfg, action):
@@ -83,13 +99,12 @@ def press(cfg, action):
     gui_ = gui()
     focus_window(cfg)
     # กดทีละปุ่มแล้วค้างไว้สั้นๆ แทน hotkey() ที่กด-ปล่อยเร็วจนเว็บบางตัวจับคีย์ไม่ทัน
-    hold = cfg.get("key_hold_seconds", 0.1)
+    hold = cfg.get("key_hold_seconds", 0.04)
     pressed = []
     try:
         for k in keys:
             gui_.keyDown(k)
             pressed.append(k)
-            time.sleep(0.03)
         time.sleep(hold)
     finally:
         for k in reversed(pressed):
@@ -134,7 +149,10 @@ def describe(cfg, action):
     return f"คลิกปุ่ม {action} ที่ ({btn['x']}, {btn['y']})" if btn else f"คลิกปุ่ม {action} (ยังไม่ได้ calibrate)"
 
 
-def execute(cfg, action, event):
+def execute(cfg, action, event, t_recv=None, lag_ms=None):
+    t0 = time.time()
+    if lag_ms is not None:
+        log(f"  (สัญญาณมาถึงบอทหลังถูกสร้างใน TradingView {lag_ms:.0f} ms)")
     if cfg.get("dry_run", True):
         log(f"[DRY RUN] {event} {action} -> จะ{describe(cfg, action)} (ยังไม่ได้ทำจริง)")
         return
@@ -146,12 +164,16 @@ def execute(cfg, action, event):
             click_button(cfg, action)
     except Exception as e:  # noqa: BLE001
         log(f"!! ทำไม่สำเร็จ ({event} {action}): {e}  ตรวจสถานะบัญชีด้วยตัวเอง")
+        return
+    done = time.time()
+    since = f" / {1000 * (done - t_recv):.0f} ms นับจากบอทรับสัญญาณ" if t_recv else ""
+    log(f"  เวลาที่บอทใช้กด: {1000 * (done - t0):.0f} ms{since}")
 
 
 def worker(cfg):
     while True:
-        action, event = jobs.get()
-        execute(cfg, action, event)
+        action, event, t_recv, lag_ms = jobs.get()
+        execute(cfg, action, event, t_recv, lag_ms)
 
 
 def validate(cfg, data):
@@ -203,7 +225,9 @@ def make_handler(cfg):
             if err:
                 log(f"ปฏิเสธ: {err}")
                 return self._reply(403 if "secret" in err else 202, err)
-            jobs.put((action, event))  # ตอบ TradingView ทันที (ต้องตอบภายใน 3 วินาที)
+            t_sig = data.get("t") if isinstance(data, dict) else None
+            lag = time.time() * 1000 - t_sig if isinstance(t_sig, (int, float)) else None
+            jobs.put((action, event, time.time(), lag))  # ตอบ TradingView ทันที (ต้องตอบภายใน 3 วินาที)
             self._reply(200, "queued")
 
         def log_message(self, *args):
@@ -223,6 +247,12 @@ def cmd_run(cfg):
     if not cfg.get("focus_app") and not cfg.get("focus_title"):
         log("คำเตือน: ไม่ได้ตั้ง focus_app/focus_title บอทจะทำงานกับหน้าจอ/หน้าต่างตามที่เป็นอยู่ตอนนั้น "
             "ถ้าหน้า TopstepX ไม่ได้อยู่หน้าสุด คลิก/คีย์จะไปผิดที่ (แม้ log จะบอกว่าทำแล้ว)")
+    try:  # อุ่นเครื่อง: import pyautogui และเรียกครั้งแรกตอนเริ่ม ไม่ให้ออเดอร์แรกช้ากว่าปกติ
+        gui().position()
+        if platform.system() == "Darwin" and cfg.get("focus_app"):
+            mac_front_is(cfg["focus_app"])
+    except Exception as e:  # noqa: BLE001
+        log(f"คำเตือน: อุ่นเครื่อง pyautogui ไม่สำเร็จ ({e})")
     threading.Thread(target=worker, args=(cfg,), daemon=True).start()
     host, port = cfg.get("host", "127.0.0.1"), cfg.get("port", 8765)
     log(f"รอ Webhook ที่ http://{host}:{port}/  dry_run={cfg.get('dry_run', True)}  mode={cfg['mode']}  "
@@ -263,7 +293,7 @@ def cmd_test(cfg, action):
         sys.exit("ใช้: test buy|sell")
     print("จะทำงานใน 3 วินาที สลับไปหน้า TopstepX ได้เลย")
     time.sleep(3)
-    execute(cfg, action, "test")
+    execute(cfg, action, "test", time.time())
 
 
 def main():
