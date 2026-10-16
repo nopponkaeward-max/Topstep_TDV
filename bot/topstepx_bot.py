@@ -26,10 +26,11 @@ LOG_PATH = HERE / "bot.log"
 ACTIONS = ("buy", "sell", "close")   # close = กดคีย์ Close Position (ปิดแล้วซ้ำได้ ถ้า flat อยู่แล้วไม่เกิดอะไร)
 
 # คีย์ลัดแนะนำ (ต้องตั้งในหน้า Hotkeys ของ TopstepX ให้ตรงกัน): Windows = Ctrl+Alt+..., macOS = Control+Shift+...
-# buy/sell = Buy/Sell Market, close = Close Position, cancel_all = Cancel All
+# buy/sell = Buy/Sell Market, close = Close Position, flatten_all = Flatten All, cancel_all = Cancel All
+# คำสั่งออก (action "close") กดคีย์ตาม `exit_key` ใน config: "close" (ค่าเริ่มต้น ปิดสถานะ) หรือ "flatten_all" แล้วตามด้วย cancel_all
 DEFAULT_HOTKEYS = {
-    "Windows": {"buy": ["ctrl", "alt", "b"], "sell": ["ctrl", "alt", "s"], "close": ["ctrl", "alt", "c"], "cancel_all": ["ctrl", "alt", "x"]},
-    "Darwin": {"buy": ["ctrl", "shift", "b"], "sell": ["ctrl", "shift", "s"], "close": ["ctrl", "shift", "c"], "cancel_all": ["ctrl", "shift", "x"]},
+    "Windows": {"buy": ["ctrl", "alt", "b"], "sell": ["ctrl", "alt", "s"], "close": ["ctrl", "alt", "c"], "flatten_all": ["ctrl", "alt", "f"], "cancel_all": ["ctrl", "alt", "x"]},
+    "Darwin": {"buy": ["ctrl", "shift", "b"], "sell": ["ctrl", "shift", "s"], "close": ["ctrl", "shift", "c"], "flatten_all": ["ctrl", "shift", "f"], "cancel_all": ["ctrl", "shift", "x"]},
 }
 
 seen_ids = deque(maxlen=1000)
@@ -78,9 +79,17 @@ def press(cfg, name):
     log(f"  ส่งคีย์ {'+'.join(keys)} ({name}) แล้ว (ยืนยันผลที่หน้า TopstepX เอง)")
 
 
+def exit_key(cfg):
+    """คีย์ที่ใช้ปิดสถานะ: close (Close Position) หรือ flatten_all (Flatten All)"""
+    key = cfg.get("exit_key", "close")
+    if key not in ("close", "flatten_all"):
+        raise RuntimeError(f"exit_key ต้องเป็น close หรือ flatten_all (ได้ {key!r})")
+    return key
+
+
 def press_close(cfg):
-    """Close Position แล้ว (ถ้าเปิดไว้) Cancel All เพื่อไม่ให้ SL/TP ที่ค้างเหลือเป็นคำสั่งกำพร้า"""
-    press(cfg, "close")
+    """ปิดสถานะ (Close Position หรือ Flatten All) แล้ว (ถ้าเปิดไว้) Cancel All เพื่อไม่ให้ SL/TP ที่ค้างเหลือเป็นคำสั่งกำพร้า"""
+    press(cfg, exit_key(cfg))
     if cfg.get("cancel_after_close", True):
         time.sleep(cfg.get("cancel_delay_seconds", 0.1))
         press(cfg, "cancel_all")
@@ -90,8 +99,9 @@ def describe(cfg, action, close_first=False):
     keys = "+".join(cfg["hotkeys"][action])
     if action == "close":
         extra = f" แล้ว {'+'.join(cfg['hotkeys']['cancel_all'])} (Cancel All)" if cfg.get("cancel_after_close", True) else ""
-        return f"กดคีย์ {keys} (Close Position){extra}"
-    pre = f"Close Position{' + Cancel All' if cfg.get('cancel_after_close', True) else ''} ก่อน แล้ว" if close_first else ""
+        key = exit_key(cfg)
+        return f"กดคีย์ {'+'.join(cfg['hotkeys'][key])} ({'Flatten All' if key == 'flatten_all' else 'Close Position'}){extra}"
+    pre = f"{'Flatten All' if exit_key(cfg) == 'flatten_all' else 'Close Position'}{' + Cancel All' if cfg.get('cancel_after_close', True) else ''} ก่อน แล้ว" if close_first else ""
     return f"{pre}กดคีย์ {keys}"
 
 

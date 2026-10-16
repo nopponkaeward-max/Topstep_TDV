@@ -16,9 +16,9 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 | เหตุการณ์ใน Indicator | บอทกด |
 |---|---|
 | เข้า long | กด Buy 1 ครั้ง |
-| ออก long (เจอ brick ขาลง) | กด **Close Position** (+ Cancel All) *(ค่าเริ่มต้น)* หรือ Sell ตรงข้าม (ตัวเลือก `Opposite order`) |
+| ออก long | กด **Close Position** (+ Cancel All) |
 | เข้า short | กด Sell 1 ครั้ง |
-| ออก short (เจอ brick ขาขึ้น) | กด **Close Position** (+ Cancel All) *(ค่าเริ่มต้น)* หรือ Buy ตรงข้าม |
+| ออก short | กด **Close Position** (+ Cancel All) |
 
 บอทกด **1 ครั้งต่อสัญญาณ** จำนวนสัญญาตั้งไว้ใน TopstepX แล้ว (ไม่มี qty ใน Indicator/บอท) เข้า-ออกใช้ขนาดเดียวกัน จึงปิดสถานะพอดี
 
@@ -75,7 +75,8 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 | 3 | **TP / SL (price distance)** | ราคาไปถึง TP หรือ SL ที่ห่างจากราคาเข้าตามระยะที่ตั้ง | TP, SL (ค่าเริ่มต้น 5 / 5, 0 = ไม่ใช้ตัวนั้น) |
 
 - แต่ละโหมดทำงานเดี่ยวๆ เช่น โหมด 2 **ไม่ออกเมื่อสีกลับ** และโหมด 3 ไม่ออกเมื่อสีกลับ หรือครบ N (ถ้าใช้โหมด 2 ไม่มี stop ระหว่างรอ ระวัง) ถ้าอยากได้ stop ให้ตั้ง SL ในแผงเทรดของ TopstepX หรือใช้โหมด 3
-- คำสั่งออกที่ส่งไปบอท: ค่าเริ่มต้น `close` (กด Close Position) / ตัวเลือก `Opposite order` ออก long = `sell`, ออก short = `buy`
+- คำสั่งออกที่ส่งไปบอทมีแบบเดียวคือ `close` **ไม่มีการส่ง Buy/Sell ตรงข้ามเพื่อออกอีกแล้ว** จึงไม่เสี่ยงเปิดสถานะกลับทิศ (ใช้ได้ทุกโหมดออก รวมถึงเมื่อ TopstepX ออกด้วย SL/TP ไปก่อน)
+- ใช้ `Flatten All` แทน `Close Position` ได้ที่ `"exit_key": "flatten_all"` ใน `config.json` (ดูหัวข้อด้านล่าง)
 - ในโหมด `TopstepX Clicker` จะ **ไม่เปิดออเดอร์ใหม่ใน brick เดียวกับที่เพิ่งออก** (กันบอทกดซื้อและขายพร้อมกัน) ต้องรอ brick ถัดไปที่ครอบคลุมตามเงื่อนไขเข้า
 - ตาราง Stats คำนวณตามโหมดออกที่เลือก
 
@@ -111,7 +112,7 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 - ถ้า SL ยังไม่ทำงาน (เช่น ราคาของ TradingView กับ TopstepX คลาดกัน) → Close Position ปิดให้ เป็นตัวสำรอง
 - หลัง Close Position บอทกด **Cancel All** ต่อ เพื่อกัน SL/TP ที่ค้างเหลือเป็นคำสั่งกำพร้า (ปิดได้ที่ `cancel_after_close: false`) **Cancel All ยกเลิกคำสั่งรอทั้งหมด** ถ้าคุณมีคำสั่งรออื่นที่ตั้งเอง ให้ปิดตัวเลือกนี้
 - ใน brick ที่ออกแล้วกลับทิศพอดี (เช่น Reversal) Indicator ส่ง **ข้อความเดียว** ที่มี `close_first` บอทจะกด Close Position → Cancel All → แล้วค่อยกด Buy/Sell ตามลำดับเสมอ (ไม่สลับลำดับ)
-- เลือกวิธีออกใน Indicator ที่ช่อง **TopstepX: วิธีออกออเดอร์** (`Close Position` ค่าเริ่มต้น / `Opposite order` แบบเดิม **ห้ามใช้แบบเดิมคู่กับ SL ใน TopstepX**)
+- **Close Position กับ Flatten All ต่างกัน:** Close Position ปิดสถานะของสัญลักษณ์ที่เทรด / Flatten All ปิดทุกสถานะในบัญชี (และมักยกเลิกคำสั่งรอด้วย) ตั้ง `"exit_key": "flatten_all"` ถ้าต้องการแบบ Flatten All (บอทกด Flatten All แล้วตามด้วย Cancel All) **ถ้ามีสถานะอื่นที่คุณถือเองในบัญชีเดียวกัน Flatten All จะปิดให้ด้วย** ค่าเริ่มต้นคือ `close`
 - สิ่งที่ต้องทดสอบบน Practice ก่อน: Close Position ปิดเฉพาะสัญลักษณ์ที่เปิดอยู่ (ไม่ใช่ทั้งบัญชี), SL ที่ค้างถูกยกเลิกหรือไม่หลังปิด, และเวลาที่ SL ปิดสถานะไปแล้วแล้วกด Close Position ไม่มีผลข้างเคียง
 
 ## 1) ตั้งคีย์ลัดใน TopstepX
@@ -123,6 +124,7 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 | Buy Market | `buy` | Control+Shift+B | Ctrl+Alt+B |
 | Sell Market | `sell` | Control+Shift+S | Ctrl+Alt+S |
 | Close Position | `close` | Control+Shift+C | Ctrl+Alt+C |
+| Flatten All (ไม่บังคับ ใช้เมื่อตั้ง `exit_key: flatten_all`) | `flatten_all` | Control+Shift+F | Ctrl+Alt+F |
 | Cancel All | `cancel_all` | Control+Shift+X | Ctrl+Alt+X |
 
   (Windows เลี่ยง `Ctrl+Shift+C` เพราะเปิด DevTools ของเบราว์เซอร์ / ห้ามใช้ Flatten All เป็นคำสั่งออก เพราะปิดทุกสถานะในบัญชี)
@@ -255,6 +257,7 @@ TradingView เรียกเข้าเครื่องคุณตรง�
 | `max_age_seconds` | ทิ้งสัญญาณที่เก่าเกินกี่วินาที (0 = ไม่เช็ก, ต้องให้นาฬิกาเครื่องตรงเวลา) |
 | `key_hold_seconds` | เวลาค้างคีย์ก่อนปล่อย (ค่าเริ่มต้น 0.04 วินาที) ถ้า TopstepX จับคีย์ไม่ติดให้เพิ่มเป็น 0.08–0.1 |
 | `hotkeys` | คีย์ `buy`, `sell`, `close`, `cancel_all` ตัวที่ไม่ใส่ใช้ค่าแนะนำตามระบบปฏิบัติการ |
+| `exit_key` | คีย์ที่ใช้ปิดสถานะ: `close` (Close Position ค่าเริ่มต้น) หรือ `flatten_all` (Flatten All) |
 | `cancel_after_close` | กด Cancel All หลัง Close Position (ค่าเริ่มต้น true) |
 | `cancel_delay_seconds` | หน่วงระหว่างคีย์ Close → Cancel All → Buy/Sell (ค่าเริ่มต้น 0.1 วินาที) |
 
