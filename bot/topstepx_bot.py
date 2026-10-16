@@ -7,6 +7,7 @@
 กดคีย์ลัด 1 ครั้งต่อสัญญาณใส่หน้าต่างที่โฟกัสอยู่ (จำนวนสัญญาตั้งไว้ใน TopstepX แล้ว)
 ไม่ใช้ API ไม่ตรวจสถานะบัญชี: Indicator สั่งอะไร บอทกดตามนั้น
 """
+import hmac
 import json
 import platform
 import queue
@@ -14,8 +15,10 @@ import sys
 import threading
 import time
 from collections import deque
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 HERE = Path(__file__).resolve().parent
 CONFIG_PATH = HERE / "config.json"
@@ -122,9 +125,27 @@ def worker(cfg):
         execute(cfg, action, event, t_recv, lag_ms, close_first)
 
 
-def validate(cfg, data):
-    """คืน (action, event, close_first, error)"""
-    if data.get("secret") != cfg["secret"]:
+def signal_time_ms(data):
+    """เวลาที่ Indicator สร้างสัญญาณ (มิลลิวินาที): `t` (ตัวเลข จาก alert()) หรือ `ts` (ข้อความ ISO จาก {{timenow}} ของ alertcondition)"""
+    t = data.get("t")
+    if isinstance(t, (int, float)):
+        return float(t)
+    ts = data.get("ts")
+    if isinstance(ts, str):
+        try:
+            dt = datetime.fromisoformat(ts.strip().replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)   # {{timenow}} เป็น UTC
+        return dt.timestamp() * 1000
+    return None
+
+
+def validate(cfg, data, url_secret=None):
+    """คืน (action, event, close_first, error)  secret รับได้จากในข้อความ (`secret`) หรือจาก Webhook URL (?secret=...)"""
+    given = str(data.get("secret") or url_secret or "")
+    if not hmac.compare_digest(given.encode(), str(cfg["secret"]).encode()):
         return None, None, False, "secret ไม่ถูกต้อง"
     action = str(data.get("action", "")).lower()
     if action not in ACTIONS:
@@ -133,9 +154,9 @@ def validate(cfg, data):
     if event not in ("entry", "exit"):
         return None, None, False, f"event ไม่รู้จัก: {event!r}"
     max_age = cfg.get("max_age_seconds", 120)
-    t = data.get("t")
-    if max_age and isinstance(t, (int, float)) and abs(time.time() * 1000 - t) > max_age * 1000:
-        return None, None, False, f"สัญญาณเก่าเกิน {max_age}s (อายุ {abs(time.time() * 1000 - t) / 1000:.0f}s) ไม่ทำ"
+    t_ms = signal_time_ms(data)
+    if max_age and t_ms is not None and abs(time.time() * 1000 - t_ms) > max_age * 1000:
+        return None, None, False, f"สัญญาณเก่าเกิน {max_age}s (อายุ {abs(time.time() * 1000 - t_ms) / 1000:.0f}s) ไม่ทำ"
     sig_id = str(data.get("id", ""))
     if not sig_id:
         return None, None, False, "ไม่มี id"
@@ -168,12 +189,14 @@ def make_handler(cfg):
             except ValueError:
                 log(f"ปฏิเสธ: ข้อความไม่ใช่ JSON: {body[:100]!r}")
                 return self._reply(400, "not json")
-            action, event, close_first, err = validate(cfg, data if isinstance(data, dict) else {})
+            data = data if isinstance(data, dict) else {}
+            url_secret = (parse_qs(urlparse(self.path).query).get("secret") or [None])[0]
+            action, event, close_first, err = validate(cfg, data, url_secret)
             if err:
                 log(f"ปฏิเสธ: {err}")
                 return self._reply(403 if "secret" in err else 202, err)
-            t_sig = data.get("t") if isinstance(data, dict) else None
-            lag = time.time() * 1000 - t_sig if isinstance(t_sig, (int, float)) else None
+            t_sig = signal_time_ms(data)
+            lag = time.time() * 1000 - t_sig if t_sig is not None else None
             jobs.put((action, event, time.time(), lag, close_first))  # ตอบ TradingView ทันที (ต้องตอบภายใน 3 วินาที)
             self._reply(200, "queued")
 

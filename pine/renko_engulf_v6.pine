@@ -409,11 +409,13 @@ if tsxMode and testSend and barstate.isrealtime and not testSent
     alert('{"secret":"' + whSecret + '","t":' + str.tostring(timenow) + ',"action":"' + testAct + '","event":"entry","id":"test-' + str.tostring(timenow) + '"}', alert.freq_once_per_bar)
     label.new(bar_index, high, "TEST " + testAct, style=label.style_label_down, color=color.new(color.orange, 20), textcolor=color.white, size=size.small)
 
-// alertcondition: ใช้ได้โดยไม่ต้องเลือก "Any alert() function call" — ตั้ง Frequency เป็น Once Per Bar (ไม่ใช่ Once Per Bar Close บน Renko)
-alertcondition(buySig,    "Renko Engulf Buy",       "Renko Engulf: BUY {{ticker}} @ {{close}}")
-alertcondition(sellSig,   "Renko Engulf Sell",      "Renko Engulf: SELL {{ticker}} @ {{close}}")
-alertcondition(exitLong,  "Renko Engulf Exit Buy",  "Renko Engulf: EXIT BUY {{ticker}} @ {{close}}")
-alertcondition(exitShort, "Renko Engulf Exit Sell", "Renko Engulf: EXIT SELL {{ticker}} @ {{close}}")
+// alertcondition: เลือกส่งทีละสัญญาณได้ (ไม่ต้องใช้ "Any alert() function call") เช่น Buy อย่างเดียว / Sell อย่างเดียว / ไม่ใช้ Exit เลย
+// ข้อความเป็น JSON สำหรับบอท TopstepX โดย **ไม่มี secret** (alertcondition ฝังค่า input ไม่ได้) ให้ใส่ secret ที่ท้าย Webhook URL แทน: https://โดเมนของคุณ/?secret=รหัสของคุณ
+// ตั้ง Frequency เป็น Once Per Bar (ไม่ใช่ Once Per Bar Close บน Renko)  Exit = ส่ง "close" (กด Close Position)
+alertcondition(buySig,    "Renko Engulf Buy",       '{"action":"buy","event":"entry","id":"b-{{timenow}}","ts":"{{timenow}}"}')
+alertcondition(sellSig,   "Renko Engulf Sell",      '{"action":"sell","event":"entry","id":"s-{{timenow}}","ts":"{{timenow}}"}')
+alertcondition(exitLong,  "Renko Engulf Exit Buy",  '{"action":"close","event":"exit","id":"xl-{{timenow}}","ts":"{{timenow}}"}')
+alertcondition(exitShort, "Renko Engulf Exit Sell", '{"action":"close","event":"exit","id":"xs-{{timenow}}","ts":"{{timenow}}"}')
 
 // ==========================================
 // --- 5. LUXE TABLE THEME ---

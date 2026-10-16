@@ -197,8 +197,26 @@ TradingView เรียกเข้าเครื่องคุณตรง�
 
 ## 4) ตั้ง Indicator และ Alert
 1. กราฟ **Renko** ของ TradingView (Chart type → Renko) ด้วยสัญลักษณ์ฟิวเจอร์สที่เทรดบน TopstepX
-2. ใส่ `pine/renko_engulf_v6.pine` ตั้งค่า **Alert mode = `TopstepX Clicker`**, **Webhook secret** ให้ตรง `config.json`
-3. สร้าง Alert: Condition = Indicator นี้ → **Any alert() function call**, Frequency ไม่ต้องตั้ง (โค้ดใช้ `freq_all`), Notifications → **Webhook URL** ใส่ URL อุโมงค์ (ปล่อยช่อง Message ไว้ ข้อความมาจาก `alert()`)
+2. ใส่ `pine/renko_engulf_v6.pine` ตั้งค่า **Alert mode = `TopstepX Clicker`**, **Webhook secret** ให้ตรง `config.json` (ใช้กับแบบ A)
+3. เลือกวิธีสร้าง Alert อย่างใดอย่างหนึ่ง:
+
+### แบบ A: Any alert() function call (ส่งทุกสัญญาณใน Alert เดียว)
+- Condition = Indicator นี้ → **Any alert() function call**, Notifications → **Webhook URL** ใส่ URL อุโมงค์ (ปล่อยช่อง Message ไว้ ข้อความมาจาก `alert()` มี `secret` อยู่ในข้อความ)
+- ครบที่สุด: ส่งทั้งเข้า/ออก และกรณีออกแล้วกลับทิศใน brick เดียว (`close_first`) ลำดับไม่สลับ
+
+### แบบ B: เลือกส่งทีละสัญญาณ (alertcondition) เช่น Buy อย่างเดียว / Sell อย่างเดียว / ไม่ใช้ Exit
+เหมาะเมื่อโบรกเกอร์ออกเองด้วย SL/TP ใน TopstepX จึงไม่จำเป็นต้องส่ง Exit
+- สร้าง Alert แยกตามที่ต้องการ: Condition = Indicator นี้ → เลือก **Renko Engulf Buy**, **Renko Engulf Sell**, **Exit Buy** (ปิด long) หรือ **Exit Sell** (ปิด short) ตัวใดตัวหนึ่งหรือหลายตัว ตั้ง Frequency เป็น **Once Per Bar**
+- ช่อง **Message** ปล่อยตามค่าเริ่มต้น (เป็น JSON อยู่แล้ว) เช่น `{"action":"buy","event":"entry","id":"b-{{timenow}}","ts":"{{timenow}}"}` ข้อความนี้ **ไม่มี secret** (Pine ฝังค่าตั้งใน alertcondition ไม่ได้) ให้ใส่ secret ที่ **ท้าย Webhook URL** แทน:
+  ```
+  https://โดเมนของคุณ.ngrok-free.dev/?secret=รหัสของคุณ
+  ```
+  บอทรับ secret จาก URL ได้ (หรือจากข้อความ ถ้ามี) และใช้ `ts` ตรวจอายุสัญญาณเหมือนเดิม
+- Exit ส่ง `close` (กด Close Position ซ้ำได้ ไม่เป็นอันตรายถ้า flat แล้ว)
+- **ข้อควรระวังของแบบ B:**
+  - ถ้าสร้างทั้ง Buy/Sell และ Exit เป็นหลาย Alert แล้ว brick เดียวเกิด "ออกแล้วกลับทิศ" (เปิด Reversal / NoWick) Alert แยกกันส่งถึงบอทลำดับไม่แน่นอน อาจเข้า Buy ก่อน Close แล้ว **ปิดสถานะที่เพิ่งเปิด** ถ้าใช้แบบ B ที่ไม่สร้าง Alert Exit เลย (ให้ TopstepX ออกด้วย SL/TP) ปัญหานี้ไม่เกิด
+  - Indicator ยังนับสถานะภายในของตัวเอง และ **จะไม่ส่งสัญญาณเข้าใหม่ขณะที่คิดว่ายังถือออเดอร์อยู่** (One order at a time) ถ้าโบรกเกอร์ออกด้วย SL/TP ไปก่อน ให้ตั้ง **Exit mode = TP / SL (price distance)** ใน Indicator ให้ระยะเท่ากับที่ตั้งใน TopstepX เพื่อให้ Indicator เห็นว่าปิดไปแล้วและเข้าใหม่ได้
+  - secret อยู่ใน URL ของ Alert (และขึ้นในหน้า ngrok `127.0.0.1:4040`) อย่าแชร์ภาพหน้าจอ
 4. ตอนเทรด เปิด **บอท** (`python3 topstepx_bot.py run`) และ **ngrok** (`ngrok http 8765`) ค้างไว้ทั้งสองหน้าต่าง (ดูหัวข้อ 3)
 
 ## ทดสอบสายส่งด้วยปุ่มทดสอบใน Indicator
