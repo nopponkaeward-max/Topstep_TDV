@@ -36,10 +36,16 @@ exitOnOpp  = input.bool(true, "ออกเมื่อเจอ box สีต�
      tooltip="(ใช้เฉพาะ Exit mode = N same-color boxes) เปิด (แนะนำ) = ถ้าเจอ box สีตรงข้ามก่อนครบ N จะออกทันที เหมือนเป็น stop\nปิด = ไม่ออกเมื่อเจอสีตรงข้าม รอจนนับ box สีเดียวกันครบ N (นับสะสมไม่ต้องติดกัน) เสี่ยงถือสถานะสวนทางนาน ไม่มี stop")
 countEntry = input.bool(false, "นับ box ที่เข้าออเดอร์เป็น box ที่ 1", group="Exit Strategy", display=display.none,
      tooltip="ปิด = เริ่มนับจากแท่งถัดจากแท่งที่เข้า (N=3 → ออกที่แท่งที่ 3 หลังเข้า)\nเปิด = แท่งที่เข้านับเป็น 1 (N=3 → ออกที่แท่งที่ 2 หลังเข้า)")
+sltpUnit   = input.string("Boxes", "SL / TP: หน่วยของระยะ", options=["Boxes", "Price distance"], group="Exit Strategy", display=display.none,
+     tooltip="ใช้เมื่อ Exit mode = SL / TP\nBoxes = ระยะเป็นจำนวน box (1 box = ขนาดตัว brick ของ brick ที่เข้า)\nPrice distance = ระยะเป็นหน่วยราคาของสินทรัพย์ เช่น ทอง 4196.00 ใส่ 10 = ห่างจากราคาเข้า 10.00 (เลขหน่วยราคาเดียวกับที่เห็นบนกราฟ)")
 tpBoxes    = input.float(4.0, "TP (box จากราคาเข้า, 0 = ไม่ใช้) — ใช้เมื่อ Exit mode = SL / TP", minval=0.0, step=0.5, group="Exit Strategy", display=display.none,
-     tooltip="ระยะ Take Profit เป็นจำนวน box จากราคาเข้า เช่น 4 = ออกเมื่อราคาไป 4 box ในทิศกำไร (Buy: ขึ้น 4 box / Sell: ลง 4 box)\n1 box = ขนาดตัว brick (|close-open|) ของ brick ที่เข้า\nตรวจที่ราคาปิดของ brick (ไม่ใช่ทุก tick) ต้องตั้ง TP ใน TopstepX ให้เท่ากันเพื่อให้โบรกเกอร์ออกทันที")
+     tooltip="ระยะ Take Profit เป็นจำนวน box จากราคาเข้า เช่น 4 = ออกเมื่อราคาไป 4 box ในทิศกำไร (Buy: ขึ้น 4 box / Sell: ลง 4 box)\n1 box = ขนาดตัว brick (|close-open|) ของ brick ที่เข้า\nตรวจจาก High/Low ของ brick (รวมไส้) ที่ปิดแล้ว ผลสถิติคิดที่ราคาระดับ TP พอดี ต้องตั้ง TP ใน TopstepX ให้เท่ากันเพื่อให้โบรกเกอร์ออกทันที")
 slBoxes    = input.float(2.0, "SL (box จากราคาเข้า, 0 = ไม่ใช้) — ใช้เมื่อ Exit mode = SL / TP", minval=0.0, step=0.5, group="Exit Strategy", display=display.none,
      tooltip="ระยะ Stop Loss เป็นจำนวน box จากราคาเข้า เช่น 2 = ออกเมื่อราคาสวนทาง 2 box จากราคาเข้า (เท่ากับ 1R) เป็น SL คงที่ ไม่เลื่อนตามราคาที่วิ่งไปในทางกำไร (ต่างจาก Opposite brick ที่ออกเมื่อ brick กลับสีซึ่งเลื่อนตามราคาล่าสุด)\nใน SL / TP mode การเจอ brick สีตรงข้ามอย่างเดียว **ไม่** ทำให้ออก (ถ้า SL = 0 และ TP = 0 จะไม่มีเงื่อนไขออกเลย ระวัง!)\nต้องตั้ง SL ใน TopstepX ให้เท่ากันเพื่อให้โบรกเกอร์ตัดทันที")
+tpPts      = input.float(10.0, "TP (ระยะราคา, 0 = ไม่ใช้) — ใช้เมื่อหน่วย = Price distance", minval=0.0, step=0.5, group="Exit Strategy", display=display.none,
+     tooltip="ระยะ Take Profit เป็นหน่วยราคาของสินทรัพย์ เช่น ทอง ใส่ 10 = ปิดกำไรเมื่อราคาห่างจากราคาเข้า 10.00 (Buy: ขึ้น / Sell: ลง)\nตรวจจาก High/Low ของ brick (รวมไส้) ที่ปิดแล้ว ผลสถิติคิดที่ราคาระดับ TP พอดี")
+slPts      = input.float(5.0, "SL (ระยะราคา, 0 = ไม่ใช้) — ใช้เมื่อหน่วย = Price distance", minval=0.0, step=0.5, group="Exit Strategy", display=display.none,
+     tooltip="ระยะ Stop Loss เป็นหน่วยราคาของสินทรัพย์ เช่น ทอง ใส่ 5 = ตัดขาดทุนเมื่อราคาสวนทาง 5.00 จากราคาเข้า\nถ้าใน brick เดียวแตะทั้ง TP และ SL จะถือว่าโดน SL ก่อน (เผื่อไว้แบบระวัง)\nต้องตั้ง SL/TP ใน TopstepX ให้เท่ากันเพื่อให้โบรกเกอร์ออกทันที")
 
 // ---------- TRADING HOURS  (งดเทรด UTC+7) ----------
 tfEnable   = input.bool(false, "เปิดตัวกรองช่วงเวลางดเทรด (UTC+7)", group="Trading Hours (UTC+7)", display=display.none,
@@ -253,21 +259,34 @@ var int sameCnt = 0                  // จำนวน box สีเดีย�
 float exitPx = close
 float riskNow  = math.max(2.0 * math.abs(close - open), syminfo.mintick)   // 1R = 2 box (box = ตัว brick |close-open|) ใช้ตอนเข้าออเดอร์
 bool engineOn  = barstate.isconfirmed   // Renko: brick ที่กำลังก่อตัว (live) ยังไม่ confirmed และเปลี่ยนทุก tick → ตัดสินเฉพาะ brick ที่เกิดจริงแล้ว
-// ---- Exit mode "SL / TP (boxes)": ระดับ SL/TP = ราคาเข้า ± จำนวน box (1 box = oRisk/2) ตรวจที่ราคาปิดของ brick ที่ confirmed ----
+// ---- Exit mode "SL / TP (boxes)": ระดับ SL/TP = ราคาเข้า ± ระยะ (หน่วย Boxes: จำนวน box × 1 box / หน่วย Price distance: หน่วยราคาตรงๆ) ----
+// 1 box = oRisk/2 ของออเดอร์แรกที่เปิดอยู่  ตรวจจาก High/Low ของ brick ที่ confirmed (รวมไส้) ถ้าใน brick เดียวแตะทั้ง TP และ SL ถือว่า SL ก่อน
 bool isSLTP    = exitMode == "SL / TP (boxes)"
-float boxE     = array.size(oRisk) > 0 ? array.get(oRisk, 0) / 2.0 : na   // 1 box ของออเดอร์แรกที่เปิดอยู่
+float boxE     = array.size(oRisk) > 0 ? array.get(oRisk, 0) / 2.0 : na
 float entryE   = array.size(oPx) > 0 ? array.get(oPx, 0) : na
 float epsTk    = syminfo.mintick * 0.5
+float tpVal    = sltpUnit == "Boxes" ? tpBoxes : tpPts
+float slVal    = sltpUnit == "Boxes" ? slBoxes : slPts
+float tpDist   = sltpUnit == "Boxes" ? tpVal * boxE : tpVal
+float slDist   = sltpUnit == "Boxes" ? slVal * boxE : slVal
 bool tpHit     = false
 bool slHit     = false
+float slTpPx   = na
 if engineOn and isSLTP and pos != 0 and not na(boxE) and not na(entryE)
     if pos == 1
-        tpHit := tpBoxes > 0 and close >= entryE + tpBoxes * boxE - epsTk
-        slHit := slBoxes > 0 and close <= entryE - slBoxes * boxE + epsTk
+        tpHit := tpVal > 0 and high >= entryE + tpDist - epsTk
+        slHit := slVal > 0 and low <= entryE - slDist + epsTk
     else
-        tpHit := tpBoxes > 0 and close <= entryE - tpBoxes * boxE + epsTk
-        slHit := slBoxes > 0 and close >= entryE + slBoxes * boxE - epsTk
+        tpHit := tpVal > 0 and low <= entryE - tpDist + epsTk
+        slHit := slVal > 0 and high >= entryE + slDist - epsTk
+    if slHit
+        tpHit := false   // แตะทั้งสองใน brick เดียว = ถือว่า SL ก่อน
+        slTpPx := pos == 1 ? entryE - slDist : entryE + slDist
+    else if tpHit
+        slTpPx := pos == 1 ? entryE + tpDist : entryE - tpDist
 bool slTpExit  = tpHit or slHit
+if slTpExit and not na(slTpPx)
+    exitPx := slTpPx   // ผลสถิติคิดที่ราคาระดับ SL/TP พอดี (ใกล้เคียงโบรกเกอร์มากกว่าราคาปิด brick)
 bool oppOK     = exitMode == "Opposite brick" or (exitMode == "N same-color boxes" and exitOnOpp)   // ออกเมื่อเจอ box สีตรงข้ามไหม (โหมด SL / TP ไม่ใช้)
 bool sameColor = (pos == 1 and bull) or (pos == -1 and bear)
 bool nHit      = false
@@ -834,7 +853,7 @@ f_drawSettings() =>
     table.cell(settingsTable, 0, 0, "◆  SETTINGS SUMMARY", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
     table.cell(settingsTable, 1, 0, "", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
     string[] k = array.from("Compare with", "Tolerance", "Buy", "Sell", "Exit rule", "1R Basis", "Stats TZ")
-    string[] v = array.from(prevMode, str.tostring(tol, "#.##"), allowLong ? "ON" : "OFF", allowShort ? "ON" : "OFF", (exitMode == "Opposite brick" ? "Opposite brick" : isSLTP ? ("SL " + str.tostring(slBoxes) + " / TP " + str.tostring(tpBoxes) + " box") : str.tostring(exitN) + " same-color" + (exitOnOpp ? " / opposite" : "")), "2 boxes", statsTz)
+    string[] v = array.from(prevMode, str.tostring(tol, "#.##"), allowLong ? "ON" : "OFF", allowShort ? "ON" : "OFF", (exitMode == "Opposite brick" ? "Opposite brick" : isSLTP ? (sltpUnit == "Boxes" ? "SL " + str.tostring(slBoxes) + " / TP " + str.tostring(tpBoxes) + " box" : "SL " + str.tostring(slPts) + " / TP " + str.tostring(tpPts) + " price")  : str.tostring(exitN) + " same-color" + (exitOnOpp ? " / opposite" : "")), "2 boxes", statsTz)
     for i = 0 to 6
         color rb = i % 2 == 0 ? lxRowA : lxRowB
         table.cell(settingsTable, 0, i + 1, array.get(k, i), text_color=lxMuted, text_size=size.tiny, bgcolor=rb, text_halign=text.align_left)
