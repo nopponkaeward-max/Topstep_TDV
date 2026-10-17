@@ -216,7 +216,6 @@ int grnPrev = grnRun
 redRun := bear ? redRun + 1 : 0
 grnRun := bull ? grnRun + 1 : 0
 bool revBull = useRev and bull and redPrev >= revMin and high > high[1] and low < low[1]
-bool re2Sell = useRE2 and bear and bull[1] and bull[2] and noWick[2] and high[1] >= high[2] - tol and low[1] <= low[2] + tol and high > high[1]
 bool revBear = useRev and bear and grnPrev >= revMin and high > high[1] and low < low[1]
 
 // NoWick Reversal: แท่งสีตรงข้ามติดกัน >= nwMin แท่ง แล้วเกิดแท่งกลับสี โดยแท่งที่ติดกัน (แท่งก่อนหน้า) และแท่งที่เกิด "ไม่มีไส้" ทั้งคู่ แท่งอื่นมีไส้ได้
@@ -244,6 +243,7 @@ bool ftBuy  = useFT and bull and grnRun == 1 and redRun[1] == 1 and grnRun[2] ==
 
 // RevEngulf02 (Sell = สลับสี): แดง no wick [2] > แดง [1] คลุม High-Low ของ [2] ทั้งหมด > เขียว (แท่งปัจจุบัน) ที่ Low ต่ำกว่า Low ของ [1]
 bool re2Buy = useRE2 and bull and bear[1] and bear[2] and noWick[2] and high[1] >= high[2] - tol and low[1] <= low[2] + tol and low < low[1]
+bool re2Sell = useRE2 and bear and bull[1] and bull[2] and noWick[2] and high[1] >= high[2] - tol and low[1] <= low[2] + tol and high > high[1]
 
 if bull
     lastBullH := high
