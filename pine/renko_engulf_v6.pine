@@ -264,6 +264,7 @@ var array<float> resEntryPx = array.new_float()   // ราคาเข้า
 var array<float> resExitPx  = array.new_float()   // ราคาออก
 var array<int>   resExitTime = array.new_int()    // เวลาออก
 
+var int chartFirstT = time   // เวลาของแท่งแรกที่ชาร์ตโหลดมา (ใช้แสดงในแถว History ของตารางสถิติ)
 var int   pos         = 0            // ทิศของออเดอร์ที่เปิดอยู่ (1 = Buy, -1 = Sell, 0 = ไม่มี)
 var float entryPrice  = na           // ราคาเข้าล่าสุด (ใช้แสดงในตาราง)
 var array<float> oPx   = array.new_float()   // ออเดอร์ที่เปิดอยู่ (หลายออเดอร์ได้เมื่อปิด One order at a time)
@@ -607,6 +608,12 @@ f_drawStats() =>
     table.cell(statsTable, 1, 15, streakStr, text_color=streakColor, text_size=size.small, bgcolor=lxRowB, text_halign=text.align_right)
     table.cell(statsTable, 0, 16, "Active", text_color=lxDimTx, text_size=size.tiny, bgcolor=lxRowA, text_halign=text.align_left)
     table.cell(statsTable, 1, 16, posStr, text_color=pos == 1 ? lxGreen : pos == -1 ? lxRed : lxMuted, text_size=size.tiny, bgcolor=lxRowA, text_halign=text.align_right)
+    // แถวตรวจสอบประวัติ: วันที่แท่งแรกที่ชาร์ตโหลดมา / วันที่เทรดแรกสุดที่ indicator นับได้ / จำนวนเทรดที่เก็บทั้งหมด (ก่อนกรองช่วงสถิติ)
+    int    histN  = array.size(resTime)
+    string firstBarStr = str.format_time(chartFirstT, "dd MMM yy", statsTz)
+    string firstTrdStr = histN > 0 ? str.format_time(array.get(resTime, 0), "dd MMM yy", statsTz) : "-"
+    table.cell(statsTable, 0, 17, "History", text_color=lxDimTx, text_size=size.tiny, bgcolor=lxRowB, text_halign=text.align_left)
+    table.cell(statsTable, 1, 17, "Chart " + firstBarStr + " · 1st " + firstTrdStr + " · " + str.tostring(histN) + "T", text_color=lxMuted, text_size=size.tiny, bgcolor=lxRowB, text_halign=text.align_right)
     if not array.get(lxMergedArr, 1)
         array.set(lxMergedArr, 1, true)
         table.merge_cells(statsTable, 0, 0, 1, 0)
