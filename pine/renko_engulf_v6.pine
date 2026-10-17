@@ -62,6 +62,7 @@ testAct    = input.string("buy", "ทดสอบ action", options=["buy", "sell
 // ---------- WEBHOOK: OKX Signal Bot ----------
 whSignalToken = input.string("", "OKX signalToken (โหมด OKX Signal Bot)", group="Webhook · OKX", display=display.none, tooltip="คัดลอกจากหน้าสร้าง Signal ใน OKX")
 whInstId   = input.string("BTCUSDT.P", "OKX instrument", group="Webhook · OKX", display=display.none, tooltip="ชื่อสัญญาที่ส่งให้ OKX รูปแบบเดียวกับ {{ticker}} ของ TradingView เช่น BTCUSDT.P, HBARUSDT.P (ใช้ทั้งตอนเข้าและตอนปิด)\nต้องมีบอทบน OKX ของสัญญานั้น (1 บอทต่อ 1 สัญญา) และตรงกับ signalToken")
+okxGapMs   = input.int(1000, "OKX หน่วง ENTER หลัง EXIT (ms) ตอนกลับทิศ", minval=0, maxval=10000, step=100, group="Webhook · OKX", display=display.none, tooltip="เมื่อ brick เดียวต้องปิดแล้วเปิดกลับทิศ: ส่ง EXIT ทันที แล้วรอให้ครบเวลานี้ค่อยส่ง ENTER (ส่งในการรันสคริปต์ครั้งถัดไปหลังครบเวลา ซึ่งต้องมี tick เข้ามา) กัน ENTER ไปถึง OKX ก่อน EXIT แล้วถูกปิดทิ้ง\n0 = ส่งพร้อมกันแบบเดิม")
 okxMaxLag  = input.int(120, "OKX Max Lag (วินาที)", minval=1, maxval=3600, group="Webhook · OKX", display=display.none, tooltip="ถ้า alert ถึง OKX ช้ากว่านี้ OKX จะยกเลิกสัญญาณ (ค่าเริ่มต้น 120 วินาที)")
 okxSizeMode = input.string("contract", "OKX ขนาดออเดอร์ที่ส่งตอนเข้า (โหมด OKX Signal Bot)", options=["Bot setting", "contract", "margin", "percentage_balance", "percentage_investment"], group="Webhook · OKX", display=display.none,
      tooltip="Bot setting = ไม่ส่งขนาดไปกับสัญญาณ ใช้ขนาดที่ตั้งในหน้า Signal Bot ของ OKX (ถ้า Bot ไม่ได้ตั้ง OKX จะใช้ค่าเริ่มต้น = 100% ของยอดคงเหลือ (Bot คู่เดียว) หรือ 50% (Bot หลายคู่) ต่อการเข้า!)\ncontract = จำนวนสัญญา (จำนวนเต็ม) / margin = มาร์จิ้นเป็นจำนวนเงิน / percentage_balance = % ของยอดคงเหลือ / percentage_investment = % ของเงินลงทุนของ Bot\nหมายเหตุ: ถ้าทั้ง Bot และสัญญาณกำหนดขนาด OKX ใช้ค่าของ Bot ก่อน\nขาออกไม่ส่งขนาด (OKX ปิด 100% ของสถานะที่เปิดอยู่)")
@@ -393,6 +394,24 @@ if buySig or sellSig
 string whClose = exitLong ? "buy" : exitShort ? "sell" : ""
 string whOpen  = buySig ? "buy" : sellSig ? "sell" : ""
 // เรียก alert() ตอน brick confirmed พอดี (ครั้งเดียวต่อแท่ง) → ใช้ freq_all เพราะ once_per_bar ส่งเฉพาะการเรียกแรกของแท่ง ทำให้ ENTER หลัง EXIT หายได้ และ once_per_bar_close บน Renko จะรอจนเปิด brick ถัดไป
+// ---- OKX: สร้างข้อความ (ใช้ timenow ตอนส่งจริง) / ENTER ที่พักไว้ตอนกลับทิศ ----
+varip string okxPendEnter = ""
+varip int    okxPendT     = 0
+f_okxMsg(string act) =>
+    string ts   = str.format_time(timenow, "yyyy-MM-dd'T'HH:mm:ss'Z'", "UTC")
+    string head = '{"action":"' + act + '","instrument":"' + whInstId + '","signalToken":"' + whSignalToken + '","timestamp":"' + ts + '","maxLag":"' + str.tostring(okxMaxLag) + '","orderType":"market"'
+    // ขนาดออเดอร์ (เฉพาะขาเข้า): Bot setting = ไม่ส่ง / อื่นๆ = ส่ง investmentType + amount คู่กัน (OKX กำหนดให้ส่งคู่หรือไม่ส่งเลย)
+    string size = str.startswith(act, "EXIT") ? ',"investmentType":"percentage_position","amount":"100"' : okxSizeMode == "Bot setting" ? "" : ',"investmentType":"' + okxSizeMode + '","amount":"' + str.tostring(okxAmount, "#.####") + '"'
+    head + size + '}'
+
+// ส่ง ENTER ที่พักไว้เมื่อครบเวลาหน่วง (รันทุก tick ของ brick ถัดไป) ถ้าเปลี่ยนโหมด/ไม่มี token จะทิ้ง
+if okxPendEnter != ""
+    if whMode != "OKX Signal Bot" or str.length(whSignalToken) == 0
+        okxPendEnter := ""
+    else if barstate.isrealtime and timenow - okxPendT >= okxGapMs
+        alert(f_okxMsg(okxPendEnter), alert.freq_all)
+        okxPendEnter := ""
+
 if whClose != "" or whOpen != ""
     if whMode == "Text only (pop-up)"
         string txt = syminfo.ticker + " [Renko Engulf] " + (whClose != "" ? "EXIT " + (whClose == "buy" ? "BUY" : "SELL") : "") +
@@ -400,21 +419,22 @@ if whClose != "" or whOpen != ""
              " @ " + str.tostring(close, format.mintick) + "  (brick " + str.tostring(open, format.mintick) + "→" + str.tostring(close, format.mintick) + ")"
         alert(txt, alert.freq_all)
     else if whMode == "OKX Signal Bot"
-        // รูปแบบเดียวกับไฟล์ reference (FeeInvest ATV1.0 WebhookOKX): ค่าตัวเลขส่งเป็นสตริง, EXIT ปิด 100% ของ position ในบอท, ส่ง EXIT ก่อน แล้วค่อย ENTER
+        // รูปแบบเดียวกับไฟล์ reference (FeeInvest ATV1.0 WebhookOKX): ค่าตัวเลขส่งเป็นสตริง, EXIT ปิด 100% ของ position ในบอท
         // ไม่มี signalToken = ไม่ส่ง (กันส่งข้อความเปล่าไป OKX)
+        // กลับทิศ (ออก+เข้าใน brick เดียว): ส่ง EXIT ทันที แล้วพัก ENTER ไว้ส่งหลังครบ okxGapMs (ดูด้านล่าง) เพื่อให้ลำดับ EXIT → ENTER ถึง OKX ถูกต้อง
         if str.length(whSignalToken) == 0
             if barstate.isrealtime
                 label.new(bar_index, close, "OKX ไม่ส่ง: ยังไม่ได้ใส่ signalToken", style=label.style_label_down, color=color.new(color.orange, 20), textcolor=color.white, size=size.small)
         else
-            string whTs = str.format_time(timenow, "yyyy-MM-dd'T'HH:mm:ss'Z'", "UTC")
-            string okxBase = '{"action":"'
-            string okxTail = '","instrument":"' + whInstId + '","signalToken":"' + whSignalToken + '","timestamp":"' + whTs + '","maxLag":"' + str.tostring(okxMaxLag) + '","orderType":"market"'
-            // ขนาดออเดอร์ (เฉพาะขาเข้า): Bot setting = ไม่ส่ง / อื่นๆ = ส่ง investmentType + amount คู่กัน (OKX กำหนดให้ส่งคู่หรือไม่ส่งเลย)
-            string okxSize = okxSizeMode == "Bot setting" ? "" : ',"investmentType":"' + okxSizeMode + '","amount":"' + str.tostring(okxAmount, "#.####") + '"'
             if whClose != ""
-                alert(okxBase + (whClose == "buy" ? "EXIT_LONG" : "EXIT_SHORT") + okxTail + ',"investmentType":"percentage_position","amount":"100"}', alert.freq_all)
+                alert(f_okxMsg(whClose == "buy" ? "EXIT_LONG" : "EXIT_SHORT"), alert.freq_all)
             if whOpen != ""
-                alert(okxBase + (whOpen == "buy" ? "ENTER_LONG" : "ENTER_SHORT") + okxTail + okxSize + '}', alert.freq_all)
+                string okxEnterAct = whOpen == "buy" ? "ENTER_LONG" : "ENTER_SHORT"
+                if whClose != "" and okxGapMs > 0 and barstate.isrealtime
+                    okxPendEnter := okxEnterAct
+                    okxPendT := timenow
+                else
+                    alert(f_okxMsg(okxEnterAct), alert.freq_all)
     else if tsxMode
         // ส่ง "คำสั่งที่ต้องกดจริง" (ไม่มีการส่ง buy/sell ตรงข้ามเพื่อออกเลย จึงไม่เสี่ยงเปิดสถานะกลับทิศ)
         //  - ออก: action "close" (บอทกด Close Position + Cancel All ซ้ำได้ ปลอดภัยแม้ SL/TP ใน TopstepX ปิดสถานะไปก่อนแล้ว)
