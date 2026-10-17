@@ -36,7 +36,7 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 - **`Reverse Engulf`** แบบแดงคลุมเขียว (ด้านล่าง) 
 - **`Double Bottom/Top (3-2-2-3)`** แบบ Double Bottom/Top (ด้านล่าง)  
 - **`FollowTrend`** แบบตามเทรนด์ (ด้านล่าง) 
-- **`RevEngulf02`** แบบแดงคลุมแดง (Buy เท่านั้น ด้านล่าง) และ `All + Pattern` = W&M + Reverse Engulf + Double + FollowTrend + RevEngulf02
+- **`RevEngulf02`** แบบแดงคลุมแดง (ด้านล่าง) และ `All + Pattern` = W&M + Reverse Engulf + Double + FollowTrend + RevEngulf02
 - แบบที่มี `+` = ใช้หลายเงื่อนไขร่วมกัน (`Engulf + Reversal`, `Engulf + NoWick`, `Reversal + NoWick`, `All`) ข้อไหนเกิดก่อนก็เข้า
 
 ช่อง **Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N)** ใช้เมื่อเลือก Reversal (ค่าเริ่มต้น 4)
@@ -51,14 +51,15 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 - บนกราฟ Renko ของ TradingView แท่งขึ้นมีไส้ได้ที่ด้านล่าง ส่วนแท่งลงมีไส้ได้ที่ด้านบน (ด้านปลายแท่งไม่มีไส้)
 - ไม่ต้องครอบ High-Low ของแท่งก่อนหน้า (ต่างจาก Reversal แบบแรก) ป้ายบนกราฟเป็น `Buy NoWick` / `Sell NoWick`
 
-### เงื่อนไขแบบ RevEngulf02 (ใหม่ — Buy เท่านั้น)
+### เงื่อนไขแบบ RevEngulf02 (ใหม่)
 
 อ่านจากแท่งเก่า → ใหม่:
 1. แดงแท่งแรก **ไม่มีไส้ (no wick)** (ใช้เกณฑ์ NoWick เดียวกับโหมด NoWick)
 2. แดงแท่งที่สอง High-Low **คลุมแท่งแรกทั้งหมด** (High ≥ High และ Low ≤ Low ของแท่งแรก ใช้ tolerance เดียวกับ Engulf)
 3. **เขียว (เข้า Buy ที่แท่งนี้)** ที่ Low ต่ำกว่า Low ของแดงแท่งก่อนหน้า
 
-- ป้ายเป็น `Buy RevEngulf02` ยังไม่มีฝั่ง Sell
+- **Sell** = สลับสี: เขียวไม่มีไส้ → เขียวคลุมแท่งแรกทั้งหมด → **แดง (เข้า Sell)** ที่ High สูงกว่า High ของเขียวก่อนหน้า
+- ป้ายเป็น `Buy RevEngulf02` / `Sell RevEngulf02`
 
 ### เงื่อนไขแบบ FollowTrend (ใหม่)
 
