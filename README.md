@@ -32,9 +32,9 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 - **`Engulf`** (ค่าเริ่มต้น) แบบเดิม: แท่งสีเดียวกันที่ครอบ High-Low ของแท่งก่อนหน้า
 - **`Reversal`** แบบครอบ High-Low (ตารางด้านล่าง)
 - **`NoWick Reversal`** แบบแท่งไม่มีไส้ (ด้านล่าง)
-- **`Pattern (N-1-1-1-1)`** แบบรูปแบบแท่งเรียงกัน (ด้านล่าง) 
-- **`Cover (G-R-G-G)`** แบบแดงคลุมเขียว (ด้านล่าง) 
-- **`Double Bottom/Top (3-2-2-3)`** แบบ Double Bottom/Top (ด้านล่าง) และ `All + Pattern` = Pattern + Cover + Double
+- **`W&M`** แบบรูปแบบแท่งเรียงกัน (ด้านล่าง) 
+- **`Reverse Engulf`** แบบแดงคลุมเขียว (ด้านล่าง) 
+- **`Double Bottom/Top (3-2-2-3)`** แบบ Double Bottom/Top (ด้านล่าง) และ `All + Pattern` = W&M + Reverse Engulf + Double
 - แบบที่มี `+` = ใช้หลายเงื่อนไขร่วมกัน (`Engulf + Reversal`, `Engulf + NoWick`, `Reversal + NoWick`, `All`) ข้อไหนเกิดก่อนก็เข้า
 
 ช่อง **Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N)** ใช้เมื่อเลือก Reversal (ค่าเริ่มต้น 4)
@@ -58,16 +58,16 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 
 - ช่วงกลาง (2, 2, 3) นับเป๊ะ ช่วงแรกนับ 3 แท่งขึ้นไป ไม่เช็กว่าจุดต่ำ/สูงสองจุดเท่ากัน ป้ายเป็น `Buy Double` / `Sell Double`
 
-### เงื่อนไขแบบ Cover (ใหม่)
+### เงื่อนไขแบบ Reverse Engulf (ใหม่)
 
 | ฝั่ง | รูปแบบ (เก่า → ใหม่) |
 |---|---|
 | **Buy** | เขียว → แดงที่ High-Low คลุมแท่งเขียวแรก → เขียว → **เขียว (เข้าที่แท่งนี้)** |
 | **Sell** | แดง → เขียวที่ High-Low คลุมแท่งแดงแรก → แดง → **แดง (เข้าที่แท่งนี้)** |
 
-- "คลุม" = High ≥ High และ Low ≤ Low ของแท่งแรก (ใช้ค่า tolerance เดียวกับ Engulf) ป้ายเป็น `Buy Cover` / `Sell Cover`
+- "คลุม" = High ≥ High และ Low ≤ Low ของแท่งแรก (ใช้ค่า tolerance เดียวกับ Engulf) ป้ายเป็น `Buy Reverse Engulf` / `Sell Reverse Engulf`
 
-### เงื่อนไขแบบ Pattern (ใหม่)
+### เงื่อนไขแบบ W&M (ใหม่)
 
 อ่านจากแท่งเก่า → ใหม่ แล้วเข้าที่แท่งสุดท้ายของรูปแบบ
 
@@ -76,7 +76,7 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 | **Sell** | แดง ≥ **N** แท่ง → เขียว 1 → แดง 1 → เขียว 1 → **แดง 1 (เข้าที่แท่งนี้)** |
 | **Buy** | สลับสี: เขียว ≥ **N** แท่ง → แดง 1 → เขียว 1 → แดง 1 → **เขียว 1 (เข้าที่แท่งนี้)** |
 
-- N ตั้งได้ที่ช่อง `Pattern: จำนวนแท่งสีเดียวกันติดกันขั้นต่ำ` (ค่าเริ่มต้น 4 = 4 แท่งขึ้นไป) ไม่เช็ค wick/engulf ป้ายบนกราฟเป็น `Buy Pattern` / `Sell Pattern`
+- N ตั้งได้ที่ช่อง `W&M: จำนวนแท่งสีเดียวกันติดกันขั้นต่ำ` (ค่าเริ่มต้น 3 = 3 แท่งขึ้นไป) ไม่เช็ค wick/engulf ป้ายบนกราฟเป็น `Buy W&M` / `Sell W&M`
 
 ### เงื่อนไขแบบ Reversal
 

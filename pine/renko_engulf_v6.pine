@@ -13,11 +13,11 @@ indicator("RENKO-ENGULF-v6", shorttitle="RNK-ENGREV", overlay=true, max_lines_co
 // --- 1. INPUTS ---
 // ==========================================
 // ---------- ENTRY  (เงื่อนไขเข้า) ----------
-entryMode  = input.string("Engulf", "Entry mode", options=["Engulf", "Reversal", "NoWick Reversal", "Engulf + Reversal", "Engulf + NoWick", "Reversal + NoWick", "All (Engulf + Reversal + NoWick)", "Pattern (N-1-1-1-1)", "Cover (G-R-G-G)", "Double Bottom/Top (3-2-2-3)", "All + Pattern"], group="Entry Strategy", display=display.none,
-     tooltip="Engulf = เข้าเมื่อแท่งสีเดียวกันครอบ High-Low ของแท่งก่อนหน้า (แบบเดิม)\nReversal = Buy: มีแท่งแดงติดกันก่อนหน้า >= N แท่ง แล้วเกิดแท่งเขียวที่ High สูงกว่า และ Low ต่ำกว่าแท่งแดงล่าสุด / Sell: ตรงข้าม\nNoWick Reversal = Buy: มีแท่งแดงติดกัน >= N แท่ง แล้วเกิดแท่งเขียว โดย 'แท่งแดงที่ติดกับแท่งเขียว' และ 'แท่งเขียวที่เกิด' ต้อง **ไม่มีไส้ (no wick)** ทั้งคู่ (แท่งอื่นมีไส้ได้) / Sell: ตรงข้าม\nแบบที่มี + = ใช้หลายเงื่อนไขร่วมกัน ข้อไหนเกิดก่อนก็เข้า\nPattern = Sell: แดง >= N แท่ง > เขียว 1 > แดง 1 > เขียว 1 > แดง 1 (เข้าที่แท่งแดงสุดท้าย) / Buy: สลับสี (เขียว N > แดง > เขียว > แดง > เขียว)\nCover = Buy: เขียว > แดงที่ High-Low คลุมแท่งเขียวแรก > เขียว 2 แท่ง (เข้าที่เขียวแท่งที่ 2) / Sell: สลับสี\nDouble = Buy: แดง >= 3 > เขียว 2 > แดง 2 > เขียว 3 (เข้าที่เขียวแท่งที่ 3) / Sell: สลับสี (เขียว >= 3 > แดง 2 > เขียว 2 > แดง 3)\nExit / TP / SL ใช้ค่าเดิมทุกโหมด")
+entryMode  = input.string("Engulf", "Entry mode", options=["Engulf", "Reversal", "NoWick Reversal", "Engulf + Reversal", "Engulf + NoWick", "Reversal + NoWick", "All (Engulf + Reversal + NoWick)", "W&M", "Reverse Engulf", "Double Bottom/Top (3-2-2-3)", "All + Pattern"], group="Entry Strategy", display=display.none,
+     tooltip="Engulf = เข้าเมื่อแท่งสีเดียวกันครอบ High-Low ของแท่งก่อนหน้า (แบบเดิม)\nReversal = Buy: มีแท่งแดงติดกันก่อนหน้า >= N แท่ง แล้วเกิดแท่งเขียวที่ High สูงกว่า และ Low ต่ำกว่าแท่งแดงล่าสุด / Sell: ตรงข้าม\nNoWick Reversal = Buy: มีแท่งแดงติดกัน >= N แท่ง แล้วเกิดแท่งเขียว โดย 'แท่งแดงที่ติดกับแท่งเขียว' และ 'แท่งเขียวที่เกิด' ต้อง **ไม่มีไส้ (no wick)** ทั้งคู่ (แท่งอื่นมีไส้ได้) / Sell: ตรงข้าม\nแบบที่มี + = ใช้หลายเงื่อนไขร่วมกัน ข้อไหนเกิดก่อนก็เข้า\nW&M = Sell: แดง >= N แท่ง > เขียว 1 > แดง 1 > เขียว 1 > แดง 1 (เข้าที่แท่งแดงสุดท้าย) / Buy: สลับสี (เขียว N > แดง > เขียว > แดง > เขียว)\nReverse Engulf = Buy: เขียว > แดงที่ High-Low คลุมแท่งเขียวแรก > เขียว 2 แท่ง (เข้าที่เขียวแท่งที่ 2) / Sell: สลับสี\nDouble = Buy: แดง >= 3 > เขียว 2 > แดง 2 > เขียว 3 (เข้าที่เขียวแท่งที่ 3) / Sell: สลับสี (เขียว >= 3 > แดง 2 > เขียว 2 > แดง 3)\nExit / TP / SL ใช้ค่าเดิมทุกโหมด")
 revMin     = input.int(4, "Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อ Entry mode มี Reversal", minval=1, maxval=50, group="Entry Strategy", display=display.none)
 nwMin      = input.int(4, "NoWick Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อ Entry mode มี NoWick", minval=1, maxval=50, group="Entry Strategy", display=display.none)
-patMin     = input.int(4, "Pattern: จำนวนแท่งสีเดียวกันติดกันขั้นต่ำก่อนเริ่มรูปแบบ (N) — ใช้เมื่อ Entry mode มี Pattern", minval=1, maxval=50, group="Entry Strategy", display=display.none)
+patMin     = input.int(3, "W&M: จำนวนแท่งสีเดียวกันติดกันขั้นต่ำก่อนเริ่มรูปแบบ (N) — ใช้เมื่อ Entry mode เป็น W&M", minval=1, maxval=50, group="Entry Strategy", display=display.none)
 nwTol      = input.float(0.0, "NoWick: ไส้ที่ยอมรับได้ (หน่วยราคา) 0 = ไม่มีไส้เลย", minval=0.0, step=0.01, group="Entry Strategy", display=display.none,
      tooltip="แท่ง no wick = High เท่ากับด้านบนของตัวแท่ง และ Low เท่ากับด้านล่างของตัวแท่ง (บนกราฟ Renko ของ TradingView แท่งขึ้นมีไส้ล่าง / แท่งลงมีไส้บน)\nใส่ค่ามากกว่า 0 ถ้าอยากยอมให้มีไส้เล็กน้อย")
 prevModeIn = input.string("Immediate previous bar", "Compare with previous", options=["Immediate previous bar", "Last Bull/Bear"], group="Entry Strategy", display=display.none,
@@ -196,9 +196,9 @@ refBearH = prevMode == "Last Bull/Bear" ? lastBearH : (bear[1] ? high[1] : na)
 refBearL = prevMode == "Last Bull/Bear" ? lastBearL : (bear[1] ? low[1]  : na)
 
 bool useAll    = entryMode == "All (Engulf + Reversal + NoWick)" or entryMode == "All + Pattern"
-bool usePat    = entryMode == "Pattern (N-1-1-1-1)" or entryMode == "All + Pattern"
+bool usePat    = entryMode == "W&M" or entryMode == "All + Pattern"
 bool useDbl    = entryMode == "Double Bottom/Top (3-2-2-3)" or entryMode == "All + Pattern"
-bool useCover  = entryMode == "Cover (G-R-G-G)" or entryMode == "All + Pattern"
+bool useCover  = entryMode == "Reverse Engulf" or entryMode == "All + Pattern"
 bool useEngulf = useAll or entryMode == "Engulf" or entryMode == "Engulf + Reversal" or entryMode == "Engulf + NoWick"
 bool useRev    = useAll or entryMode == "Reversal" or entryMode == "Engulf + Reversal" or entryMode == "Reversal + NoWick"
 bool useNW     = useAll or entryMode == "NoWick Reversal" or entryMode == "Engulf + NoWick" or entryMode == "Reversal + NoWick"
@@ -222,12 +222,12 @@ bool noWick = high - math.max(open, close) <= nwTol + syminfo.mintick * 0.5 and 
 bool nwBull = useNW and bull and noWick and noWick[1] and redPrev >= nwMin
 bool nwBear = useNW and bear and noWick and noWick[1] and grnPrev >= nwMin
 
-// Pattern: อ่านจากเก่า→ใหม่ Sell = แดง>=patMin, เขียว, แดง, เขียว, แดง(แท่งปัจจุบัน) / Buy = สีสลับกัน
+// W&M: อ่านจากเก่า→ใหม่ Sell = แดง>=patMin, เขียว, แดง, เขียว, แดง(แท่งปัจจุบัน) / Buy = สีสลับกัน
 // redRun[4] / grnRun[4] = จำนวนแท่งสีเดียวกันติดกันที่จบที่แท่งที่ 5 นับจากแท่งปัจจุบัน
 bool patSell = usePat and bear and bull[1] and bear[2] and bull[3] and redRun[4] >= patMin
 bool patBuy  = usePat and bull and bear[1] and bull[2] and bear[3] and grnRun[4] >= patMin
 
-// Cover: เขียว > แดง (High>=High และ Low<=Low ของเขียวแรก) > เขียว > เขียว  เข้าที่เขียวแท่งที่ 2 / Sell สลับสี
+// Reverse Engulf: เขียว > แดง (High>=High และ Low<=Low ของเขียวแรก) > เขียว > เขียว  เข้าที่เขียวแท่งที่ 2 / Sell สลับสี
 bool covBuy  = useCover and bull and bull[1] and bear[2] and bull[3] and high[2] >= high[3] - tol and low[2] <= low[3] + tol
 bool covSell = useCover and bear and bear[1] and bull[2] and bear[3] and high[2] >= high[3] - tol and low[2] <= low[3] + tol
 
@@ -369,7 +369,7 @@ if buySig or sellSig
     array.push(oTime, time)
     color sideCol = buySig ? color.green : color.red
     label.new(bar_index, close, "", style=label.style_circle, color=color.new(sideCol, 70), size=size.large)
-    label.new(bar_index, buySig ? low : high, buySig ? (engulfBull ? "Buy\nEngulf" : revBull ? "Buy\nRev" : patBuy ? "Buy\nPattern" : covBuy ? "Buy\nCover" : dblBuy ? "Buy\nDouble" : "Buy\nNoWick") : (engulfBear ? "Sell\nEngulf" : revBear ? "Sell\nRev" : patSell ? "Sell\nPattern" : covSell ? "Sell\nCover" : dblSell ? "Sell\nDouble" : "Sell\nNoWick"),
+    label.new(bar_index, buySig ? low : high, buySig ? (engulfBull ? "Buy\nEngulf" : revBull ? "Buy\nRev" : patBuy ? "Buy\nW&M" : covBuy ? "Buy\nReverse Engulf" : dblBuy ? "Buy\nDouble" : "Buy\nNoWick") : (engulfBear ? "Sell\nEngulf" : revBear ? "Sell\nRev" : patSell ? "Sell\nW&M" : covSell ? "Sell\nReverse Engulf" : dblSell ? "Sell\nDouble" : "Sell\nNoWick"),
          style = buySig ? label.style_label_up : label.style_label_down, color=color.new(sideCol, 25), textcolor=color.white, size=orderLabelSize)
     if showEntryLine
         line.new(bar_index, close, bar_index + 6, close, color=color.new(sideCol, 30), width=2)
