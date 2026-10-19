@@ -268,6 +268,23 @@ TradingView เรียกเข้าเครื่องคุณตรง�
   ```
   บอทรับ secret จาก URL ได้ (หรือจากข้อความ ถ้ามี) และใช้ `ts` ตรวจอายุสัญญาณเหมือนเดิม
 - Exit ส่ง `close` (กด Close Position ซ้ำได้ ไม่เป็นอันตรายถ้า flat แล้ว)
+#### ข้อความ (Message) ของแต่ละ Alert แบบ B
+เลือก Condition ให้ตรงกับแถว แล้วช่อง **Message** ใช้ข้อความตามตารางนี้ (ถ้าปล่อยค่าเริ่มต้น TradingView จะใส่ข้อความนี้ให้เองอยู่แล้ว **ห้ามเปลี่ยนเป็นข้อความธรรมดา** บอทต้องการ JSON):
+
+| Condition ที่เลือก | ข้อความใน Message | บอทกดอะไร |
+|---|---|---|
+| `Renko Engulf Buy` | `{"action":"buy","event":"entry","id":"b-{{timenow}}","ts":"{{timenow}}"}` | Buy Market |
+| `Renko Engulf Sell` | `{"action":"sell","event":"entry","id":"s-{{timenow}}","ts":"{{timenow}}"}` | Sell Market |
+| `Renko Engulf Exit Buy` | `{"action":"close","event":"exit","id":"xl-{{timenow}}","ts":"{{timenow}}"}` | Close Position + Cancel All |
+| `Renko Engulf Exit Sell` | `{"action":"close","event":"exit","id":"xs-{{timenow}}","ts":"{{timenow}}"}` | Close Position + Cancel All |
+
+- **ชื่อ Condition ที่ขึ้นในรายการ** ใช้ได้กับทุก Entry mode (Engulf, Reversal, W&M ฯลฯ) ตัวสัญญาณมาจากโหมดที่เลือกใน Indicator
+- **Webhook URL ต้องมี `?secret=`** ทุก Alert แบบ B: `https://โดเมนของคุณ.ngrok-free.dev/?secret=รหัสของคุณ` เพราะข้อความด้านบนไม่มี secret
+- ตัว `{{timenow}}` เป็นตัวแปรของ TradingView ใส่ตามนี้เป๊ะ ไม่ต้องแทนค่าเอง
+- Frequency = **Once Per Bar**
+- **ถ้าขึ้น `403 Forbidden`** (ในประวัติ Alert ของ TradingView): Webhook URL ไม่มี `?secret=` หรือรหัสไม่ตรงกับ `bot/config.json` (ตัวพิมพ์เล็กใหญ่และช่องว่างต้องตรงเป๊ะ) และบอทต้องเป็นเวอร์ชันที่อ่าน `?secret=` ได้ (commit `8b45d4f` ขึ้นไป)
+- เทียบกับแบบ A: แบบ A (`alert()`) ฝัง secret ไว้ในข้อความเอง จึงไม่ต้องใส่ `?secret=` ที่ URL แบบ B ต้องใส่เสมอ
+
 - **ข้อควรระวังของแบบ B:**
   - ถ้าสร้างทั้ง Buy/Sell และ Exit เป็นหลาย Alert แล้ว brick เดียวเกิด "ออกแล้วกลับทิศ" (เปิด Reversal / NoWick) Alert แยกกันส่งถึงบอทลำดับไม่แน่นอน อาจเข้า Buy ก่อน Close แล้ว **ปิดสถานะที่เพิ่งเปิด** ถ้าใช้แบบ B ที่ไม่สร้าง Alert Exit เลย (ให้ TopstepX ออกด้วย SL/TP) ปัญหานี้ไม่เกิด
   - Indicator ยังนับสถานะภายในของตัวเอง และ **จะไม่ส่งสัญญาณเข้าใหม่ขณะที่คิดว่ายังถือออเดอร์อยู่** (One order at a time) ถ้าโบรกเกอร์ออกด้วย SL/TP ไปก่อน ให้ตั้ง **Exit mode = TP / SL (price distance)** ใน Indicator ให้ระยะเท่ากับที่ตั้งใน TopstepX เพื่อให้ Indicator เห็นว่าปิดไปแล้วและเข้าใหม่ได้
