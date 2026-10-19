@@ -261,7 +261,7 @@ TradingView เรียกเข้าเครื่องคุณตรง�
 
 ### แบบ B: เลือกส่งทีละสัญญาณ (alertcondition) เช่น Buy อย่างเดียว / Sell อย่างเดียว / ไม่ใช้ Exit
 เหมาะเมื่อโบรกเกอร์ออกเองด้วย SL/TP ใน TopstepX จึงไม่จำเป็นต้องส่ง Exit
-- สร้าง Alert แยกตามที่ต้องการ: Condition = Indicator นี้ → เลือก **Renko Engulf Buy**, **Renko Engulf Sell**, **Exit Buy** (ปิด long) หรือ **Exit Sell** (ปิด short) ตัวใดตัวหนึ่งหรือหลายตัว ตั้ง Frequency เป็น **Once Per Bar**
+- สร้าง Alert แยกตามที่ต้องการ: Condition = Indicator นี้ → เลือก **Renko Buy**, **Renko Sell**, **Exit Buy** (ปิด long) หรือ **Exit Sell** (ปิด short) ตัวใดตัวหนึ่งหรือหลายตัว ตั้ง Frequency เป็น **Once Per Bar**
 - ช่อง **Message** ปล่อยตามค่าเริ่มต้น (เป็น JSON อยู่แล้ว) เช่น `{"action":"buy","event":"entry","id":"b-{{timenow}}","ts":"{{timenow}}"}` ข้อความนี้ **ไม่มี secret** (Pine ฝังค่าตั้งใน alertcondition ไม่ได้) ให้ใส่ secret ที่ **ท้าย Webhook URL** แทน:
   ```
   https://โดเมนของคุณ.ngrok-free.dev/?secret=รหัสของคุณ
@@ -273,10 +273,10 @@ TradingView เรียกเข้าเครื่องคุณตรง�
 
 | Condition ที่เลือก | ข้อความใน Message | บอทกดอะไร |
 |---|---|---|
-| `Renko Engulf Buy` | `{"action":"buy","event":"entry","id":"b-{{timenow}}","ts":"{{timenow}}"}` | Buy Market |
-| `Renko Engulf Sell` | `{"action":"sell","event":"entry","id":"s-{{timenow}}","ts":"{{timenow}}"}` | Sell Market |
-| `Renko Engulf Exit Buy` | `{"action":"close","event":"exit","id":"xl-{{timenow}}","ts":"{{timenow}}"}` | Close Position + Cancel All |
-| `Renko Engulf Exit Sell` | `{"action":"close","event":"exit","id":"xs-{{timenow}}","ts":"{{timenow}}"}` | Close Position + Cancel All |
+| `Renko Buy` | `{"action":"buy","event":"entry","id":"b-{{timenow}}","ts":"{{timenow}}"}` | Buy Market |
+| `Renko Sell` | `{"action":"sell","event":"entry","id":"s-{{timenow}}","ts":"{{timenow}}"}` | Sell Market |
+| `Renko Exit Buy` | `{"action":"close","event":"exit","id":"xl-{{timenow}}","ts":"{{timenow}}"}` | Close Position + Cancel All |
+| `Renko Exit Sell` | `{"action":"close","event":"exit","id":"xs-{{timenow}}","ts":"{{timenow}}"}` | Close Position + Cancel All |
 
 - **ชื่อ Condition ที่ขึ้นในรายการ** ใช้ได้กับทุก Entry mode (Engulf, Reversal, W&M ฯลฯ) ตัวสัญญาณมาจากโหมดที่เลือกใน Indicator
 - **Webhook URL ต้องมี `?secret=`** ทุก Alert แบบ B: `https://โดเมนของคุณ.ngrok-free.dev/?secret=รหัสของคุณ` เพราะข้อความด้านบนไม่มี secret

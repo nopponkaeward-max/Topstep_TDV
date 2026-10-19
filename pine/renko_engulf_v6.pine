@@ -414,7 +414,7 @@ if okxPendEnter != ""
 
 if whClose != "" or whOpen != ""
     if whMode == "Text only (pop-up)"
-        string txt = syminfo.ticker + " [Renko Engulf] " + (whClose != "" ? "EXIT " + (whClose == "buy" ? "BUY" : "SELL") : "") +
+        string txt = syminfo.ticker + " [Renko] " + (whClose != "" ? "EXIT " + (whClose == "buy" ? "BUY" : "SELL") : "") +
              (whClose != "" and whOpen != "" ? " → " : "") + (whOpen != "" ? (whOpen == "buy" ? "BUY" : "SELL") + " ENTRY" : "") +
              " @ " + str.tostring(close, format.mintick) + "  (brick " + str.tostring(open, format.mintick) + "→" + str.tostring(close, format.mintick) + ")"
         alert(txt, alert.freq_all)
@@ -459,10 +459,10 @@ if tsxMode and testSend and barstate.isrealtime and not testSent
 // alertcondition: เลือกส่งทีละสัญญาณได้ (ไม่ต้องใช้ "Any alert() function call") เช่น Buy อย่างเดียว / Sell อย่างเดียว / ไม่ใช้ Exit เลย
 // ข้อความเป็น JSON สำหรับบอท TopstepX โดย **ไม่มี secret** (alertcondition ฝังค่า input ไม่ได้) ให้ใส่ secret ที่ท้าย Webhook URL แทน: https://โดเมนของคุณ/?secret=รหัสของคุณ
 // ตั้ง Frequency เป็น Once Per Bar (ไม่ใช่ Once Per Bar Close บน Renko)  Exit = ส่ง "close" (กด Close Position)
-alertcondition(buySig,    "Renko Engulf Buy",       '{"action":"buy","event":"entry","id":"b-{{timenow}}","ts":"{{timenow}}"}')
-alertcondition(sellSig,   "Renko Engulf Sell",      '{"action":"sell","event":"entry","id":"s-{{timenow}}","ts":"{{timenow}}"}')
-alertcondition(exitLong,  "Renko Engulf Exit Buy",  '{"action":"close","event":"exit","id":"xl-{{timenow}}","ts":"{{timenow}}"}')
-alertcondition(exitShort, "Renko Engulf Exit Sell", '{"action":"close","event":"exit","id":"xs-{{timenow}}","ts":"{{timenow}}"}')
+alertcondition(buySig,    "Renko Buy",       '{"action":"buy","event":"entry","id":"b-{{timenow}}","ts":"{{timenow}}"}')
+alertcondition(sellSig,   "Renko Sell",      '{"action":"sell","event":"entry","id":"s-{{timenow}}","ts":"{{timenow}}"}')
+alertcondition(exitLong,  "Renko Exit Buy",  '{"action":"close","event":"exit","id":"xl-{{timenow}}","ts":"{{timenow}}"}')
+alertcondition(exitShort, "Renko Exit Sell", '{"action":"close","event":"exit","id":"xs-{{timenow}}","ts":"{{timenow}}"}')
 
 // ==========================================
 // --- 5. LUXE TABLE THEME ---
