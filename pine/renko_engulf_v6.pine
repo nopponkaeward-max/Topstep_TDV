@@ -255,6 +255,28 @@ bool re2Sell = useRE2 and bear and bull[1] and bull[2] and noWick[2] and high[1]
 bool rgrBuy  = useRGR and bear and bull[1] and bear[2]
 bool rgrSell = useRGR and bull and bear[1] and bull[2]
 
+// ---- ประวัติ brick ที่ "ปิดแล้ว" (index 0 = brick ล่าสุดที่ปิด) ใช้กับตาราง Pattern Outlook โดยไม่ปนกับค่า tick ของแท่งที่กำลังก่อตัว ----
+var array<bool>  cBull  = array.new_bool()
+var array<float> cHigh  = array.new_float()
+var array<float> cLow   = array.new_float()
+var array<float> cOpen  = array.new_float()
+var array<float> cClose = array.new_float()
+var array<int>   cRed   = array.new_int()
+var array<int>   cGrn   = array.new_int()
+var array<bool>  cNW    = array.new_bool()
+if barstate.isconfirmed
+    array.unshift(cBull, bull)
+    array.unshift(cHigh, high)
+    array.unshift(cLow, low)
+    array.unshift(cOpen, open)
+    array.unshift(cClose, close)
+    array.unshift(cRed, redRun)
+    array.unshift(cGrn, grnRun)
+    array.unshift(cNW, noWick)
+    if array.size(cBull) > 12
+        array.pop(cBull), array.pop(cHigh), array.pop(cLow), array.pop(cOpen)
+        array.pop(cClose), array.pop(cRed), array.pop(cGrn), array.pop(cNW)
+
 if bull
     lastBullH := high
     lastBullL := low
@@ -501,7 +523,7 @@ var table settingsTable     = table.new(f_tablePos(settingsTablePosStr), 2, 8,  
 var table todayTbl = na   // สร้างใหม่ทุกครั้งที่วาด เพราะจำนวนแถวเปลี่ยนตามจำนวนออเดอร์ของวันที่ดู
 var table weekdayStatsTable = table.new(f_tablePos(weekdayTablePosStr),  6, 10,             bgcolor=lxRowA, frame_width=2, frame_color=lxFrame, border_width=1, border_color=lxGrid)
 
-var table outlookTbl        = table.new(f_tablePos(outlookTablePosStr),  3, 16, bgcolor=lxRowA, frame_width=2, frame_color=lxFrame, border_width=1, border_color=lxGrid)
+var table outlookTbl        = table.new(f_tablePos(outlookTablePosStr),  4, 16, bgcolor=lxRowA, frame_width=2, frame_color=lxFrame, border_width=1, border_color=lxGrid)
 
 var bool[] lxMergedArr = array.new_bool(8, false)
 
@@ -1022,83 +1044,119 @@ f_drawToday(table tbl, int shown, int rowsTotal) =>
 // ==========================================
 // --- 5B. PATTERN OUTLOOK (คาดการณ์ pattern ของ brick ที่กำลังก่อตัว) ---
 // ==========================================
-// ประเมิน "ถ้า brick ที่กำลังก่อตัวปิดเป็นขึ้น/ลง" ว่าเงื่อนไขของทุก Entry เป็นจริงไหม (ไม่ขึ้นกับ Entry mode ที่เลือก)
-// ใช้สูตรเดียวกับสัญญาณจริงด้านบน แต่แทนแท่งปัจจุบันด้วย brick สมมติ (hO/hH/hL/hC) แท่งก่อนหน้า [1]... คือ brick ที่ปิดแล้ว
-// ไส้ของ brick สมมติประมาณจากราคาสูง/ต่ำของแท่งที่กำลังก่อตัว (ไส้อาจยาวขึ้นก่อน brick ปิด) จึงเป็นการประมาณ ผลจริงตัดสินตอน brick ปิด
-// ผลลัพธ์เรียง: Engulf, Reversal, NoWick, W&M, Reverse Engulf, Double, FollowTrend, RevEngulf02, RGR  (ตัวแรก 8 ตัว: brick ขึ้น = BUY / ลง = SELL, RGR กลับกัน)
+// ประเมิน "ถ้า brick ถัดไป (ที่กำลังก่อตัว) ปิดเป็นขึ้น/ลง" ว่าเงื่อนไขของทุก Entry เป็นจริงไหม (ไม่ขึ้นกับ Entry mode ที่เลือก)
+// ใช้สูตรเดียวกับสัญญาณจริงด้านบน แต่อ่านประวัติจากอาร์เรย์ brick ที่ปิดแล้ว (index 0 = brick ล่าสุดที่ปิด = [1] ของสูตรจริง)
+// และแทนแท่งปัจจุบันด้วย brick สมมติ (hO/hH/hL/hC) ทำงานได้ทั้งตอนตลาดเปิดและปิด (ตลาดปิดจะประเมินจาก brick ล่าสุดที่ปิด)
+f_has(int i) => i >= 0 and array.size(cBull) > i
+f_bu(int i)  => f_has(i) and array.get(cBull, i)
+f_be(int i)  => f_has(i) and not array.get(cBull, i)
+f_hi(int i)  => f_has(i) ? array.get(cHigh, i) : na
+f_lo(int i)  => f_has(i) ? array.get(cLow, i) : na
+f_red(int i) => f_has(i) ? array.get(cRed, i) : 0
+f_grn(int i) => f_has(i) ? array.get(cGrn, i) : 0
+f_nw(int i)  => f_has(i) and array.get(cNW, i)
+
+// brick ล่าสุด "สีเดียวกับ brick สมมติ" ที่ใช้เทียบแบบ Engulf (Immediate previous = แท่งก่อนหน้าทันทีถ้าสีเดียวกัน / Last Bull/Bear = แท่งสีนั้นล่าสุด)
+f_refIdx(bool up) =>
+    int found = -1
+    if prevMode == "Last Bull/Bear"
+        for k = 0 to array.size(cBull) - 1
+            if found < 0 and array.get(cBull, k) == up
+                found := k
+    else if f_has(0) and array.get(cBull, 0) == up
+        found := 0
+    found
+
+// ผลลัพธ์เรียง: Engulf, Reversal, NoWick, W&M, Reverse Engulf, Double, FollowTrend, RevEngulf02, RGR
+// (8 ตัวแรก: brick ขึ้น = BUY / brick ลง = SELL, RGR กลับกัน)
 f_outlookFlags(bool up, float hO, float hH, float hL, float hC) =>
-    int  rr   = up ? 0 : redPrev + 1
-    int  gg   = up ? grnPrev + 1 : 0
-    int  opp  = up ? redPrev : grnPrev
+    int  gg   = up ? f_grn(0) + 1 : 0
+    int  rr   = up ? 0 : f_red(0) + 1
+    int  opp  = up ? f_red(0) : f_grn(0)
     bool nwk  = hH - math.max(hO, hC) <= nwTol + syminfo.mintick * 0.5 and math.min(hO, hC) - hL <= nwTol + syminfo.mintick * 0.5
-    float refH = up ? refBullH : refBearH
-    float refL = up ? refBullL : refBearL
-    bool fEngulf = not na(refH) and hH >= refH - tol and hL <= refL + tol
-    bool fRev    = opp >= revMin and hH > high[1] and hL < low[1]
-    bool fNW     = nwk and noWick[1] and opp >= nwMin
-    bool fPat    = up ? (bear[1] and bull[2] and bear[3] and grnRun[4] >= patMin) : (bull[1] and bear[2] and bull[3] and redRun[4] >= patMin)
-    bool fCov    = up ? (bull[1] and bear[2] and bull[3] and high[2] >= high[3] - tol and low[2] <= low[3] + tol) : (bear[1] and bull[2] and bear[3] and high[2] >= high[3] - tol and low[2] <= low[3] + tol)
-    bool fDbl    = up ? (gg == 3 and redRun[3] == 2 and grnRun[5] == 2 and redRun[7] >= 3) : (rr == 3 and grnRun[3] == 2 and redRun[5] == 2 and grnRun[7] >= 3)
-    bool fFT     = up ? (gg == 1 and redRun[1] == 1 and grnRun[2] == 1 and redRun[3] == 2 and grnRun[5] >= 3) : (rr == 1 and grnRun[1] == 1 and redRun[2] == 1 and grnRun[3] == 2 and redRun[5] >= 3)
-    bool fRE2    = up ? (bear[1] and bear[2] and noWick[2] and high[1] >= high[2] - tol and low[1] <= low[2] + tol and hL < low[1]) : (bull[1] and bull[2] and noWick[2] and high[1] >= high[2] - tol and low[1] <= low[2] + tol and hH > high[1])
-    // RGR สวนสี: Buy เกิดตอน brick ปิดลง / Sell เกิดตอน brick ปิดขึ้น (ตัวสุดท้ายในอาร์เรย์ ฝั่ง BUY/SELL สลับกับ pattern อื่น)
-    bool fRGR    = up ? (bear[1] and bull[2]) : (bull[1] and bear[2])
+    int  ri   = f_refIdx(up)
+    bool fEngulf = ri >= 0 and hH >= f_hi(ri) - tol and hL <= f_lo(ri) + tol
+    bool fRev    = opp >= revMin and hH > f_hi(0) and hL < f_lo(0)
+    bool fNW     = nwk and f_nw(0) and opp >= nwMin
+    bool fPat    = up ? (f_be(0) and f_bu(1) and f_be(2) and f_grn(3) >= patMin) : (f_bu(0) and f_be(1) and f_bu(2) and f_red(3) >= patMin)
+    bool covPx   = f_hi(1) >= f_hi(2) - tol and f_lo(1) <= f_lo(2) + tol
+    bool fCov    = up ? (f_bu(0) and f_be(1) and f_bu(2) and covPx) : (f_be(0) and f_bu(1) and f_be(2) and covPx)
+    bool fDbl    = up ? (gg == 3 and f_red(2) == 2 and f_grn(4) == 2 and f_red(6) >= 3) : (rr == 3 and f_grn(2) == 2 and f_red(4) == 2 and f_grn(6) >= 3)
+    bool fFT     = up ? (gg == 1 and f_red(0) == 1 and f_grn(1) == 1 and f_red(2) == 2 and f_grn(4) >= 3) : (rr == 1 and f_grn(0) == 1 and f_red(1) == 1 and f_grn(2) == 2 and f_red(4) >= 3)
+    bool re2Px   = f_hi(0) >= f_hi(1) - tol and f_lo(0) <= f_lo(1) + tol
+    bool fRE2    = up ? (f_be(0) and f_be(1) and f_nw(1) and re2Px and hL < f_lo(0)) : (f_bu(0) and f_bu(1) and f_nw(1) and re2Px and hH > f_hi(0))
+    bool fRGR    = up ? (f_be(0) and f_bu(1)) : (f_bu(0) and f_be(1))
     array.from(fEngulf, fRev, fNW, fPat, fCov, fDbl, fFT, fRE2, fRGR)
 
 f_drawOutlook() =>
-    bool live = barstate.isrealtime and not barstate.isconfirmed and bar_index >= 8
-    table.cell(outlookTbl, 0, 0, "◆  PATTERN OUTLOOK  ·  brick ที่กำลังก่อตัว", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
-    if not live
-        table.clear(outlookTbl, 0, 1, 2, 15)
-        table.cell(outlookTbl, 0, 1, "รอ brick ที่กำลังก่อตัว (แสดงเฉพาะตอนตลาดเปิด/realtime)", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
+    bool hasHist = array.size(cBull) >= 8
+    bool live    = barstate.isrealtime and not barstate.isconfirmed
+    string tag   = live ? "LIVE " + str.format_time(timenow, "HH:mm:ss", statsTz) : "CLOSED (ใช้ brick ล่าสุด)"
+    table.cell(outlookTbl, 0, 0, "◆  PATTERN OUTLOOK  ·  brick ถัดไป", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
+    if not hasHist
+        table.cell(outlookTbl, 0, 1, "ประวัติ brick ยังไม่พอ (ต้องมี ≥ 8 brick)", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
     else
-        // ระดับที่ brick ถัดไปจะปิด: ต่อเนื่องจาก close[1] / กลับทิศต้องผ่านจุดเปิดของ brick ก่อนหน้า (= 2 box จาก close[1])
-        float bx    = math.max(math.abs(close[1] - open[1]), syminfo.mintick)
-        bool  lastUp = close[1] > open[1]
-        float upO   = lastUp ? close[1] : open[1]
+        // brick ล่าสุดที่ปิด (index 0) กำหนดระดับที่ brick ถัดไปจะปิด: ต่อเนื่องจาก close / กลับทิศต้องผ่านจุดเปิดของ brick นั้น (= 2 box จาก close)
+        float lc    = array.get(cClose, 0)
+        float lo0   = array.get(cOpen, 0)
+        float bx    = math.max(math.abs(lc - lo0), syminfo.mintick)
+        bool  lastUp = lc > lo0
+        float upO   = lastUp ? lc : lo0
         float upC   = upO + bx
-        float dnO   = lastUp ? open[1] : close[1]
+        float dnO   = lastUp ? lo0 : lc
         float dnC   = dnO - bx
-        float dUp   = math.max(upC - close, syminfo.mintick)
-        float dDn   = math.max(close - dnC, syminfo.mintick)
-        float pUp   = dDn / (dUp + dDn) * 100.0   // โอกาสแตะขึ้นก่อน (random walk ไม่มีทิศ: สัดส่วนกลับกับระยะ)
-        array<bool> fUp = f_outlookFlags(true,  upO, upC, math.min(upO, low), upC)
-        array<bool> fDn = f_outlookFlags(false, dnO, math.max(dnO, high), dnC, dnC)
+        float px    = live ? close : lc
+        float dUp   = math.max(upC - px, syminfo.mintick)
+        float dDn   = math.max(px - dnC, syminfo.mintick)
+        float pUp   = dDn / (dUp + dDn) * 100.0   // โอกาสแตะระดับขึ้นก่อน (random walk ไม่มีทิศ: สัดส่วนกลับกับระยะ)
+        float pDn   = 100.0 - pUp
+        // ไส้ของ brick สมมติ: ตอนสด ใช้ high/low ของแท่งที่กำลังก่อตัว / ตอนตลาดปิดไม่รู้ จึงถือว่าไม่มีไส้
+        float upL   = live ? math.min(upO, low) : upO
+        float dnH   = live ? math.max(dnO, high) : dnO
+        array<bool> fUp = f_outlookFlags(true,  upO, upC, upL, upC)
+        array<bool> fDn = f_outlookFlags(false, dnO, dnH, dnC, dnC)
         array<string> nm  = array.from("Engulf", "Reversal", "NoWick Rev", "W&M", "Reverse Engulf", "Double B/T", "FollowTrend", "RevEngulf02", "RGR")
         array<bool>   sel = array.from(useEngulf, useRev, useNW, usePat, useCover, useDbl, useFT, useRE2, useRGR)
-        table.cell(outlookTbl, 0, 1, "Price " + str.tostring(close, format.mintick) + "  ·  brick " + str.tostring(bx, format.mintick), text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
+        table.cell(outlookTbl, 0, 1, tag + "  ·  ราคา " + str.tostring(px, format.mintick) + "  ·  1 brick = " + str.tostring(bx, format.mintick), text_color=live ? lxCyan : lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
         table.cell(outlookTbl, 0, 2, "▲ UP brick", text_color=lxGreen, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_left)
-        table.cell(outlookTbl, 1, 2, str.tostring(upC, format.mintick) + "  (+" + str.tostring(dUp, format.mintick) + ")", text_color=lxText, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_center)
-        table.cell(outlookTbl, 2, 2, str.tostring(pUp, "#") + "%", text_color=lxGreen, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_center)
+        table.cell(outlookTbl, 1, 2, str.tostring(upC, format.mintick), text_color=lxText, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_center)
+        table.cell(outlookTbl, 2, 2, "+" + str.tostring(dUp, format.mintick), text_color=lxMuted, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_center)
+        table.cell(outlookTbl, 3, 2, str.tostring(pUp, "#") + "%", text_color=lxGreen, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_center)
         table.cell(outlookTbl, 0, 3, "▼ DOWN brick", text_color=lxRed, text_size=size.small, bgcolor=lxRowB, text_halign=text.align_left)
-        table.cell(outlookTbl, 1, 3, str.tostring(dnC, format.mintick) + "  (-" + str.tostring(dDn, format.mintick) + ")", text_color=lxText, text_size=size.small, bgcolor=lxRowB, text_halign=text.align_center)
-        table.cell(outlookTbl, 2, 3, str.tostring(100.0 - pUp, "#") + "%", text_color=lxRed, text_size=size.small, bgcolor=lxRowB, text_halign=text.align_center)
+        table.cell(outlookTbl, 1, 3, str.tostring(dnC, format.mintick), text_color=lxText, text_size=size.small, bgcolor=lxRowB, text_halign=text.align_center)
+        table.cell(outlookTbl, 2, 3, "-" + str.tostring(dDn, format.mintick), text_color=lxMuted, text_size=size.small, bgcolor=lxRowB, text_halign=text.align_center)
+        table.cell(outlookTbl, 3, 3, str.tostring(pDn, "#") + "%", text_color=lxRed, text_size=size.small, bgcolor=lxRowB, text_halign=text.align_center)
         table.cell(outlookTbl, 0, 4, "PATTERN  (● = Entry mode ที่เลือก)", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
-        table.cell(outlookTbl, 1, 4, "ถ้า ▲ Up brick", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
-        table.cell(outlookTbl, 2, 4, "ถ้า ▼ Down brick", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
+        table.cell(outlookTbl, 1, 4, "ถ้า ▲ Up", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
+        table.cell(outlookTbl, 2, 4, "ถ้า ▼ Down", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
+        table.cell(outlookTbl, 3, 4, "% เกิด", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
         int nUp = 0
         int nDn = 0
         for k = 0 to 8
             bool u = array.get(fUp, k)
             bool d = array.get(fDn, k)
             bool sk = array.get(sel, k)
-            color rowBg = k % 2 == 0 ? lxRowA : lxRowB
-            nUp += u ? 1 : 0
-            nDn += d ? 1 : 0
-            table.cell(outlookTbl, 0, 5 + k, (sk ? "● " : "○ ") + array.get(nm, k), text_color=sk ? lxText : lxMuted, text_size=size.small, bgcolor=rowBg, text_halign=text.align_left)
             bool upBuy = k != 8    // brick ขึ้นให้ BUY (ยกเว้น RGR ที่ให้ SELL)
             bool dnBuy = k == 8    // brick ลงให้ SELL (ยกเว้น RGR ที่ให้ BUY)
-            table.cell(outlookTbl, 1, 5 + k, u ? (upBuy ? "✓ BUY" : "✓ SELL") : "·", text_color=u ? (upBuy ? lxGreen : lxRed) : lxDimTx, text_size=size.small, bgcolor=u ? color.new(upBuy ? lxGreen : lxRed, 80) : rowBg, text_halign=text.align_center)
-            table.cell(outlookTbl, 2, 5 + k, d ? (dnBuy ? "✓ BUY" : "✓ SELL") : "·", text_color=d ? (dnBuy ? lxGreen : lxRed) : lxDimTx, text_size=size.small, bgcolor=d ? color.new(dnBuy ? lxGreen : lxRed, 80) : rowBg, text_halign=text.align_center)
+            float pat = (u ? pUp : 0.0) + (d ? pDn : 0.0)   // โอกาสที่ pattern นี้เกิด ณ ราคาตอนนี้ (รวมทั้งสองทิศถ้าเกิดได้ทั้งคู่)
+            color rowBg = k % 2 == 0 ? lxRowA : lxRowB
+            color hiBg  = pat > 0 ? color.new(u and d ? lxAmber : ((u and upBuy) or (d and dnBuy)) ? lxGreen : lxRed, 86) : rowBg
+            nUp += u ? 1 : 0
+            nDn += d ? 1 : 0
+            table.cell(outlookTbl, 0, 5 + k, (sk ? "● " : "○ ") + array.get(nm, k), text_color=pat > 0 ? lxText : (sk ? lxText : lxMuted), text_size=size.small, bgcolor=hiBg, text_halign=text.align_left)
+            table.cell(outlookTbl, 1, 5 + k, u ? (upBuy ? "BUY" : "SELL") : "·", text_color=u ? (upBuy ? lxGreen : lxRed) : lxDimTx, text_size=size.small, bgcolor=hiBg, text_halign=text.align_center)
+            table.cell(outlookTbl, 2, 5 + k, d ? (dnBuy ? "BUY" : "SELL") : "·", text_color=d ? (dnBuy ? lxGreen : lxRed) : lxDimTx, text_size=size.small, bgcolor=hiBg, text_halign=text.align_center)
+            table.cell(outlookTbl, 3, 5 + k, pat > 0 ? str.tostring(pat, "#") + "%" : "-", text_color=pat > 0 ? lxText : lxDimTx, text_size=size.small, bgcolor=hiBg, text_halign=text.align_center)
         table.cell(outlookTbl, 0, 14, "รวมที่เกิดได้", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
         table.cell(outlookTbl, 1, 14, str.tostring(nUp) + " pattern", text_color=nUp > 0 ? lxText : lxDimTx, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
         table.cell(outlookTbl, 2, 14, str.tostring(nDn) + " pattern", text_color=nDn > 0 ? lxText : lxDimTx, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
-        table.cell(outlookTbl, 0, 15, "% = โอกาสแตะระดับนั้นก่อน (ประมาณจากระยะ ไม่ใช่การพยากรณ์ทิศ) · ไส้ประมาณจากราคาปัจจุบัน ผลจริงตอน brick ปิด", text_color=lxDimTx, text_size=size.tiny, bgcolor=lxRowDim, text_halign=text.align_left)
+        table.cell(outlookTbl, 3, 14, "", text_color=lxDimTx, text_size=size.tiny, bgcolor=lxSubBg)
+        table.cell(outlookTbl, 0, 15, "% เกิด = โอกาสที่ brick ปิดไปทางที่ทำให้ pattern เกิด (ประมาณจากระยะราคา ณ tick นี้แบบ random walk ไม่ใช่การพยากรณ์ทิศ) · ไส้ประมาณจากราคาปัจจุบัน ผลจริงตอน brick ปิด", text_color=lxDimTx, text_size=size.tiny, bgcolor=lxRowDim, text_halign=text.align_left)
     if not array.get(lxMergedArr, 6)
         array.set(lxMergedArr, 6, true)
-        table.merge_cells(outlookTbl, 0, 0, 2, 0)
-        table.merge_cells(outlookTbl, 0, 1, 2, 1)
-        table.merge_cells(outlookTbl, 0, 15, 2, 15)
+        table.merge_cells(outlookTbl, 0, 0, 3, 0)
+        table.merge_cells(outlookTbl, 0, 1, 3, 1)
+        table.merge_cells(outlookTbl, 0, 15, 3, 15)
 
 // ==========================================
 // --- 6. DRAW TABLES (last bar only) ---
