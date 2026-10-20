@@ -5,6 +5,7 @@
 //   SELL : เงื่อนไขตรงข้าม (Bearish ครอบคลุม Bearish ก่อนหน้า)          → Exit เมื่อเจอแท่ง Bullish
 //   Visual / ตาราง Stats อิงจาก NOPPON-GOLD1-1 (Luxe theme, Stats / Monthly / Weekday / Daily / Settings)
 //   1R = ระยะ 2 box จากราคาเข้า (2 × ขนาด box = 2 × |close-open| ของ brick ที่เข้า) ไม่ใช้ High-Low ของ brick
+//   ยกเว้น Exit mode = TP / SL (price distance): 1R = ระยะ SL ที่ตั้ง (ถ้า SL = 0 ใช้ 2 box)
 // ============================================================================
 
 indicator("RENKO-ENGULF-v6", shorttitle="RNK-ENGREV", overlay=true, max_lines_count=500, max_labels_count=500)
@@ -301,7 +302,7 @@ if bear
 // --- 4. TRADE ENGINE ---
 // ==========================================
 var array<bool>  resIsWin = array.new_bool()
-var array<float> resR     = array.new_float()   // ผลลัพธ์เป็น R (1R = 2 box จากราคาเข้า)
+var array<float> resR     = array.new_float()   // ผลลัพธ์เป็น R (1R = 2 box จากราคาเข้า / โหมด TP/SL = ระยะ SL)
 var array<float> resPts   = array.new_float()   // ผลลัพธ์เป็นราคา (points) มีเครื่องหมาย
 var array<int>   resTime  = array.new_int()     // เวลาที่เปิดออเดอร์
 var array<bool>  resIsBuy = array.new_bool()
@@ -320,7 +321,7 @@ var array<int>   oTime = array.new_int()
 var int sameCnt = 0                  // จำนวน box สีเดียวกับทิศออเดอร์ที่นับได้ตั้งแต่เข้า (ใช้กับ Exit mode = N same-color boxes)
 
 float exitPx = close
-float riskNow  = math.max(2.0 * math.abs(close - open), syminfo.mintick)   // 1R = 2 box (box = ตัว brick |close-open|) ใช้ตอนเข้าออเดอร์
+float riskNow  = math.max(2.0 * math.abs(close - open), syminfo.mintick)   // 1R = 2 box (box = ตัว brick |close-open|) ใช้ตอนเข้าออเดอร์ (โหมด TP / SL ใช้ระยะ SL แทน ดูตอนเข้า)
 bool engineOn  = barstate.isconfirmed   // Renko: brick ที่กำลังก่อตัว (live) ยังไม่ confirmed และเปลี่ยนทุก tick → ตัดสินเฉพาะ brick ที่เกิดจริงแล้ว
 // ---- Exit mode: เลือกอย่างเดียว (Opposite brick / N same-color boxes / TP / SL ตามระยะราคา) ----
 bool isOpp     = exitMode == "Opposite brick"
@@ -420,7 +421,7 @@ if buySig or sellSig
     sameCnt := countEntry ? 1 : 0
     entryPrice := close
     array.push(oPx, close)
-    array.push(oRisk, riskNow)
+    array.push(oRisk, isSLTP and slPts > 0 ? slPts : riskNow)   // โหมด TP / SL: 1R = ระยะ SL ที่ตั้ง / โหมดอื่น: 2 box
     array.push(oBar, bar_index)
     array.push(oTime, time)
     color sideCol = buySig ? color.green : color.red
@@ -657,7 +658,7 @@ f_drawStats() =>
     string maxWR   = maxW > 0 ? "W" + str.tostring(maxW) + " · " + (totalCnt == 0 ? "-" : "+" + str.tostring(maxWinR, "#.##") + "R") + "   " + maxWDateStr : "-"
     string maxLR   = maxL > 0 ? "L" + str.tostring(maxL) + " · " + (totalCnt == 0 ? "-" : str.tostring(maxLossR, "#.##") + "R") + "   " + maxLDateStr : "-"
     table.cell(statsTable, 0, 0, "◆  RENKO  ·  " + modeLbl, text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
-    table.cell(statsTable, 0, 1, periodStr + "  ·  1R = 2 boxes", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
+    table.cell(statsTable, 0, 1, periodStr + "  ·  1R = " + (isSLTP and slPts > 0 ? "SL " + str.tostring(slPts) : "2 boxes"), text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
     table.cell(statsTable, 3, 1, posTag, text_color=posCol, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
     table.cell(statsTable, 0, 2, "NET R",      text_color=lxMuted, text_size=size.tiny, bgcolor=lxRowA, text_halign=text.align_center)
     table.cell(statsTable, 1, 2, "WINRATE",    text_color=lxMuted, text_size=size.tiny, bgcolor=lxRowA, text_halign=text.align_center)
@@ -949,7 +950,7 @@ f_drawSettings() =>
     table.cell(settingsTable, 0, 0, "◆  SETTINGS SUMMARY", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
     table.cell(settingsTable, 1, 0, "", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
     string[] k = array.from("Compare with", "Tolerance", "Buy", "Sell", "Exit rule", "1R Basis", "Stats TZ")
-    string[] v = array.from(prevMode, str.tostring(tol, "#.##"), allowLong ? "ON" : "OFF", allowShort ? "ON" : "OFF", (isOpp ? "Opposite brick" : isSLTP ? ("TP " + str.tostring(tpPts) + " / SL " + str.tostring(slPts)) : str.tostring(exitN) + " same-color"), "2 boxes", statsTz)
+    string[] v = array.from(prevMode, str.tostring(tol, "#.##"), allowLong ? "ON" : "OFF", allowShort ? "ON" : "OFF", (isOpp ? "Opposite brick" : isSLTP ? ("TP " + str.tostring(tpPts) + " / SL " + str.tostring(slPts)) : str.tostring(exitN) + " same-color"), (isSLTP and slPts > 0 ? "SL " + str.tostring(slPts) : "2 boxes"), statsTz)
     for i = 0 to 6
         color rb = i % 2 == 0 ? lxRowA : lxRowB
         table.cell(settingsTable, 0, i + 1, array.get(k, i), text_color=lxMuted, text_size=size.tiny, bgcolor=rb, text_halign=text.align_left)
