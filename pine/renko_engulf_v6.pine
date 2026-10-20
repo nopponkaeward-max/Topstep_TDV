@@ -1091,10 +1091,10 @@ f_outlookFlags(bool up, float hO, float hH, float hL, float hC) =>
 f_drawOutlook() =>
     bool hasHist = array.size(cBull) >= 8
     bool live    = barstate.isrealtime and not barstate.isconfirmed
-    string tag   = live ? "LIVE " + str.format_time(timenow, "HH:mm:ss", statsTz) : "CLOSED (ใช้ brick ล่าสุด)"
-    table.cell(outlookTbl, 0, 0, "◆  PATTERN OUTLOOK  ·  brick ถัดไป", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
+    string tag   = live ? "LIVE " + str.format_time(timenow, "HH:mm:ss", statsTz) : "CLOSED"
+    table.cell(outlookTbl, 0, 0, "◆ OUTLOOK · brick ถัดไป", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
     if not hasHist
-        table.cell(outlookTbl, 0, 1, "ประวัติ brick ยังไม่พอ (ต้องมี ≥ 8 brick)", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
+        table.cell(outlookTbl, 0, 1, "รอ brick ≥ 8", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
     else
         // brick ล่าสุดที่ปิด (index 0) กำหนดระดับที่ brick ถัดไปจะปิด: ต่อเนื่องจาก close / กลับทิศต้องผ่านจุดเปิดของ brick นั้น (= 2 box จาก close)
         float lc    = array.get(cClose, 0)
@@ -1115,21 +1115,21 @@ f_drawOutlook() =>
         float dnH   = live ? math.max(dnO, high) : dnO
         array<bool> fUp = f_outlookFlags(true,  upO, upC, upL, upC)
         array<bool> fDn = f_outlookFlags(false, dnO, dnH, dnC, dnC)
-        array<string> nm  = array.from("Engulf", "Reversal", "NoWick Rev", "W&M", "Reverse Engulf", "Double B/T", "FollowTrend", "RevEngulf02", "RGR")
+        array<string> nm  = array.from("Engulf", "Reversal", "NoWick", "W&M", "Rev.Engulf", "Double", "FollowTr.", "RevEng02", "RGR")
         array<bool>   sel = array.from(useEngulf, useRev, useNW, usePat, useCover, useDbl, useFT, useRE2, useRGR)
-        table.cell(outlookTbl, 0, 1, tag + "  ·  ราคา " + str.tostring(px, format.mintick) + "  ·  1 brick = " + str.tostring(bx, format.mintick), text_color=live ? lxCyan : lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
-        table.cell(outlookTbl, 0, 2, "▲ UP brick", text_color=lxGreen, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_left)
+        table.cell(outlookTbl, 0, 1, tag + " · " + str.tostring(px, format.mintick), text_color=live ? lxCyan : lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
+        table.cell(outlookTbl, 0, 2, "▲ Up", text_color=lxGreen, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_left)
         table.cell(outlookTbl, 1, 2, str.tostring(upC, format.mintick), text_color=lxText, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_center)
         table.cell(outlookTbl, 2, 2, "+" + str.tostring(dUp, format.mintick), text_color=lxMuted, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_center)
         table.cell(outlookTbl, 3, 2, str.tostring(pUp, "#") + "%", text_color=lxGreen, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_center)
-        table.cell(outlookTbl, 0, 3, "▼ DOWN brick", text_color=lxRed, text_size=size.small, bgcolor=lxRowB, text_halign=text.align_left)
+        table.cell(outlookTbl, 0, 3, "▼ Down", text_color=lxRed, text_size=size.small, bgcolor=lxRowB, text_halign=text.align_left)
         table.cell(outlookTbl, 1, 3, str.tostring(dnC, format.mintick), text_color=lxText, text_size=size.small, bgcolor=lxRowB, text_halign=text.align_center)
         table.cell(outlookTbl, 2, 3, "-" + str.tostring(dDn, format.mintick), text_color=lxMuted, text_size=size.small, bgcolor=lxRowB, text_halign=text.align_center)
         table.cell(outlookTbl, 3, 3, str.tostring(pDn, "#") + "%", text_color=lxRed, text_size=size.small, bgcolor=lxRowB, text_halign=text.align_center)
-        table.cell(outlookTbl, 0, 4, "PATTERN  (● = Entry mode ที่เลือก)", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
-        table.cell(outlookTbl, 1, 4, "ถ้า ▲ Up", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
-        table.cell(outlookTbl, 2, 4, "ถ้า ▼ Down", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
-        table.cell(outlookTbl, 3, 4, "% เกิด", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
+        table.cell(outlookTbl, 0, 4, "PATTERN", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
+        table.cell(outlookTbl, 1, 4, "▲ Up", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
+        table.cell(outlookTbl, 2, 4, "▼ Down", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
+        table.cell(outlookTbl, 3, 4, "%", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
         int nUp = 0
         int nDn = 0
         for k = 0 to 8
@@ -1143,15 +1143,15 @@ f_drawOutlook() =>
             color hiBg  = pat > 0 ? color.new(u and d ? lxAmber : ((u and upBuy) or (d and dnBuy)) ? lxGreen : lxRed, 86) : rowBg
             nUp += u ? 1 : 0
             nDn += d ? 1 : 0
-            table.cell(outlookTbl, 0, 5 + k, (sk ? "● " : "○ ") + array.get(nm, k), text_color=pat > 0 ? lxText : (sk ? lxText : lxMuted), text_size=size.small, bgcolor=hiBg, text_halign=text.align_left)
-            table.cell(outlookTbl, 1, 5 + k, u ? (upBuy ? "BUY" : "SELL") : "·", text_color=u ? (upBuy ? lxGreen : lxRed) : lxDimTx, text_size=size.small, bgcolor=hiBg, text_halign=text.align_center)
-            table.cell(outlookTbl, 2, 5 + k, d ? (dnBuy ? "BUY" : "SELL") : "·", text_color=d ? (dnBuy ? lxGreen : lxRed) : lxDimTx, text_size=size.small, bgcolor=hiBg, text_halign=text.align_center)
-            table.cell(outlookTbl, 3, 5 + k, pat > 0 ? str.tostring(pat, "#") + "%" : "-", text_color=pat > 0 ? lxText : lxDimTx, text_size=size.small, bgcolor=hiBg, text_halign=text.align_center)
-        table.cell(outlookTbl, 0, 14, "รวมที่เกิดได้", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
-        table.cell(outlookTbl, 1, 14, str.tostring(nUp) + " pattern", text_color=nUp > 0 ? lxText : lxDimTx, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
-        table.cell(outlookTbl, 2, 14, str.tostring(nDn) + " pattern", text_color=nDn > 0 ? lxText : lxDimTx, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
+            table.cell(outlookTbl, 0, 5 + k, (sk ? "●" : "○") + array.get(nm, k), text_color=pat > 0 ? lxText : (sk ? lxText : lxMuted), text_size=size.tiny, bgcolor=hiBg, text_halign=text.align_left)
+            table.cell(outlookTbl, 1, 5 + k, u ? (upBuy ? "BUY" : "SELL") : "·", text_color=u ? (upBuy ? lxGreen : lxRed) : lxDimTx, text_size=size.tiny, bgcolor=hiBg, text_halign=text.align_center)
+            table.cell(outlookTbl, 2, 5 + k, d ? (dnBuy ? "BUY" : "SELL") : "·", text_color=d ? (dnBuy ? lxGreen : lxRed) : lxDimTx, text_size=size.tiny, bgcolor=hiBg, text_halign=text.align_center)
+            table.cell(outlookTbl, 3, 5 + k, pat > 0 ? str.tostring(pat, "#") + "%" : "-", text_color=pat > 0 ? lxText : lxDimTx, text_size=size.tiny, bgcolor=hiBg, text_halign=text.align_center)
+        table.cell(outlookTbl, 0, 14, "รวม", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
+        table.cell(outlookTbl, 1, 14, str.tostring(nUp), text_color=nUp > 0 ? lxText : lxDimTx, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
+        table.cell(outlookTbl, 2, 14, str.tostring(nDn), text_color=nDn > 0 ? lxText : lxDimTx, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
         table.cell(outlookTbl, 3, 14, "", text_color=lxDimTx, text_size=size.tiny, bgcolor=lxSubBg)
-        table.cell(outlookTbl, 0, 15, "% เกิด = โอกาสที่ brick ปิดไปทางที่ทำให้ pattern เกิด (ประมาณจากระยะราคา ณ tick นี้แบบ random walk ไม่ใช่การพยากรณ์ทิศ) · ไส้ประมาณจากราคาปัจจุบัน ผลจริงตอน brick ปิด", text_color=lxDimTx, text_size=size.tiny, bgcolor=lxRowDim, text_halign=text.align_left)
+        table.cell(outlookTbl, 0, 15, "● = เลือกอยู่ · % ประมาณจากระยะราคา", text_color=lxDimTx, text_size=size.tiny, bgcolor=lxRowDim, text_halign=text.align_left)
     if not array.get(lxMergedArr, 6)
         array.set(lxMergedArr, 6, true)
         table.merge_cells(outlookTbl, 0, 0, 3, 0)
