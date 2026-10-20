@@ -27,6 +27,16 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 {"secret":"...","t":1759560000000,"action":"buy","event":"entry","id":"1759560000000-1234-e"}
 ```
 
+## ตารางสถิติและ Pattern Outlook (บนกราฟ)
+- **ตารางหลัก (Stats):** การ์ดตัวเลข 4 ช่อง (Net R, Winrate, Profit Factor, Max DD) พร้อมสถานะ BUY / SELL / FLAT มุมขวา และรายละเอียดแบบย่อ (W/L แยก Buy/Sell, streak ที่ดีที่สุด/แย่ที่สุด, แถว History)
+- **ตารางรายเดือน (Monthly):** สีพื้นแต่ละเดือนตามผล เขียว = กำไร แดง = ขาดทุน ยิ่งเข้มยิ่งมาก (เทียบกับเดือนที่ผลสูงสุดในช่วงที่ดู) ★ = เดือนที่ดีที่สุด
+- **Pattern Outlook** (เปิด/ปิดที่ `Show Pattern Outlook` กลุ่ม Stats · Tables, ตำแหน่งตั้งได้): คาดการณ์ว่า **ถ้า brick ที่กำลังก่อตัวปิดเป็นขึ้น (▲) หรือลง (▼)** จะเกิด pattern ไหนบ้าง
+  - แสดงครบทุก Entry (Engulf, Reversal, NoWick Rev, W&M, Reverse Engulf, Double B/T, FollowTrend, RevEngulf02) **ไม่ขึ้นกับ Entry mode ที่เลือก** ● = โหมดที่ Entry mode นำไปเทรดจริง ○ = เป็นแค่การดู
+  - บอกระดับราคาที่ brick ขึ้น/ลงจะปิด ระยะจากราคาปัจจุบัน และ % โอกาสแตะระดับนั้นก่อน (ประมาณจากระยะแบบ random walk ไม่ใช่การพยากรณ์ทิศ)
+  - แสดงเฉพาะตอนตลาดเปิด (realtime) ที่มี brick กำลังก่อตัว ถ้าตลาดปิดจะขึ้นข้อความรอ
+  - ไส้ของ brick สมมติประมาณจากราคาสูง/ต่ำของแท่งที่กำลังก่อตัว (ไส้อาจยาวขึ้นก่อน brick ปิด) pattern ที่ต้องดูไส้ (Engulf, Reversal, NoWick, Reverse Engulf, RevEngulf02) จึงเป็นการประมาณ ผลจริงตัดสินตอน brick ปิด
+  - ตารางนี้เป็นเพียงการดู ไม่ส่ง Alert และไม่เปิดออเดอร์
+
 ## เลือกเงื่อนไขเข้า: **Entry mode** (กลุ่ม **Entry Strategy** ใน Indicator)
 เลือกจาก dropdown:
 - **`Engulf`** (ค่าเริ่มต้น) แบบเดิม: แท่งสีเดียวกันที่ครอบ High-Low ของแท่งก่อนหน้า
