@@ -13,11 +13,21 @@ indicator("RENKO-ENGULF-v6", shorttitle="RNK-ENGREV", overlay=true, max_lines_co
 // --- 1. INPUTS ---
 // ==========================================
 // ---------- ENTRY  (เงื่อนไขเข้า) ----------
-entryMode  = input.string("Engulf", "Entry mode", options=["Engulf", "Reversal", "NoWick Reversal", "Engulf + Reversal", "Engulf + NoWick", "Reversal + NoWick", "All (Engulf + Reversal + NoWick)", "W&M", "Reverse Engulf", "Double Bottom/Top (3-2-2-3)", "FollowTrend", "RevEngulf02", "RGR", "Reverse RGR", "All + Pattern"], group="Entry Strategy", display=display.none,
-     tooltip="Engulf = เข้าเมื่อแท่งสีเดียวกันครอบ High-Low ของแท่งก่อนหน้า (แบบเดิม)\nReversal = Buy: มีแท่งแดงติดกันก่อนหน้า >= N แท่ง แล้วเกิดแท่งเขียวที่ High สูงกว่า และ Low ต่ำกว่าแท่งแดงล่าสุด / Sell: ตรงข้าม\nNoWick Reversal = Buy: มีแท่งแดงติดกัน >= N แท่ง แล้วเกิดแท่งเขียว โดย 'แท่งแดงที่ติดกับแท่งเขียว' และ 'แท่งเขียวที่เกิด' ต้อง **ไม่มีไส้ (no wick)** ทั้งคู่ (แท่งอื่นมีไส้ได้) / Sell: ตรงข้าม\nแบบที่มี + = ใช้หลายเงื่อนไขร่วมกัน ข้อไหนเกิดก่อนก็เข้า\nW&M = Sell: แดง >= N แท่ง > เขียว 1 > แดง 1 > เขียว 1 > แดง 1 (เข้าที่แท่งแดงสุดท้าย) / Buy: สลับสี (เขียว N > แดง > เขียว > แดง > เขียว)\nReverse Engulf = Buy: เขียว > แดงที่ High-Low คลุมแท่งเขียวแรก > เขียว 2 แท่ง (เข้าที่เขียวแท่งที่ 2) / Sell: สลับสี\nDouble = Buy: แดง >= 3 > เขียว 2 > แดง 2 > เขียว 3 (เข้าที่เขียวแท่งที่ 3) / Sell: สลับสี (เขียว >= 3 > แดง 2 > เขียว 2 > แดง 3)\nFollowTrend = Sell: แดง >= 3 > เขียว 2 > แดง 1 > เขียว 1 > แดง 1 (เข้าที่แดงสุดท้าย) / Buy: สลับสี\nRevEngulf02 = Buy: แดงไม่มีไส้ > แดงที่ High-Low คลุมแท่งแรกทั้งหมด > เขียวที่ Low ต่ำกว่า Low ของแดงก่อนหน้า / Sell: สลับสี (เขียวไม่มีไส้ > เขียวคลุม > แดงที่ High สูงกว่า High ของเขียวก่อนหน้า)\nRGR = Sell: แดง > เขียว > แดง (เข้าที่แดงแท่งสุดท้าย) / Buy: เขียว > แดง > เขียว (เข้าที่เขียวแท่งสุดท้าย) นับ 3 แท่งล่าสุดตามสี ไม่จำกัดจำนวนแท่งก่อนหน้า\nReverse RGR = สลับฝั่งของ RGR: Buy: แดง > เขียว > แดง (เข้าที่แดงสุดท้าย) / Sell: เขียว > แดง > เขียว (เข้าที่เขียวสุดท้าย) ไม่รวมใน All + Pattern เพราะสวนกับ RGR\nExit / TP / SL ใช้ค่าเดิมทุกโหมด")
-revMin     = input.int(4, "Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อ Entry mode มี Reversal", minval=1, maxval=50, group="Entry Strategy", display=display.none)
-nwMin      = input.int(4, "NoWick Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อ Entry mode มี NoWick", minval=1, maxval=50, group="Entry Strategy", display=display.none)
-patMin     = input.int(3, "W&M: จำนวนแท่งสีเดียวกันติดกันขั้นต่ำก่อนเริ่มรูปแบบ (N) — ใช้เมื่อ Entry mode เป็น W&M", minval=1, maxval=50, group="Entry Strategy", display=display.none)
+// ติ๊กเลือกได้หลาย pattern พร้อมกัน (ข้อไหนเกิดก่อนก็เข้า) ถ้าไม่ติ๊กเลย = ไม่เปิดออเดอร์ใหม่
+enEngulf = input.bool(true,  "Engulf — แท่งสีเดียวกันครอบ High-Low ของแท่งก่อนหน้า", group="Entry Strategy", display=display.none)
+enRev    = input.bool(false, "Reversal — แดงติดกัน ≥ N แล้วเขียวที่ High สูงกว่า/Low ต่ำกว่าแท่งล่าสุด (Sell ตรงข้าม)", group="Entry Strategy", display=display.none)
+enNW     = input.bool(false, "NoWick Reversal — ติดกัน ≥ N แล้วกลับสี โดยแท่งที่ติดกันกับแท่งที่เกิดไม่มีไส้", group="Entry Strategy", display=display.none)
+enPat    = input.bool(false, "W&M — Sell: แดง ≥ N > เขียว > แดง > เขียว > แดง / Buy สลับสี", group="Entry Strategy", display=display.none)
+enCover  = input.bool(false, "Reverse Engulf — Buy: เขียว > แดงคลุมแท่งแรก > เขียว > เขียว / Sell สลับสี", group="Entry Strategy", display=display.none)
+enDbl    = input.bool(false, "Double Bottom/Top — Buy: แดง ≥ 3 > เขียว 2 > แดง 2 > เขียว 3 / Sell สลับสี", group="Entry Strategy", display=display.none)
+enFT     = input.bool(false, "FollowTrend — Sell: แดง ≥ 3 > เขียว 2 > แดง 1 > เขียว 1 > แดง 1 / Buy สลับสี", group="Entry Strategy", display=display.none)
+enRE2    = input.bool(false, "RevEngulf02 — Buy: แดงไม่มีไส้ > แดงคลุมทั้งแท่ง > เขียวที่ Low ต่ำกว่า / Sell สลับสี", group="Entry Strategy", display=display.none)
+enRGR    = input.bool(false, "RGR — Sell: แดง > เขียว > แดง / Buy: เขียว > แดง > เขียว", group="Entry Strategy", display=display.none)
+enRRGR   = input.bool(false, "Reverse RGR — Buy: แดง > เขียว > แดง / Sell: เขียว > แดง > เขียว (ถ้าติ๊ก RGR ด้วย จะไม่ใช้ Reverse RGR เพราะสวนกัน)", group="Entry Strategy", display=display.none,
+     tooltip="Exit / TP / SL ใช้ค่าเดิมทุก pattern\nRGR กับ Reverse RGR สวนกันในแท่งเดียวกัน จึงใช้พร้อมกันไม่ได้ ถ้าติ๊กทั้งคู่จะใช้เฉพาะ RGR")
+revMin     = input.int(4, "Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อติ๊ก Reversal", minval=1, maxval=50, group="Entry Strategy", display=display.none)
+nwMin      = input.int(4, "NoWick Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อติ๊ก NoWick Reversal", minval=1, maxval=50, group="Entry Strategy", display=display.none)
+patMin     = input.int(3, "W&M: จำนวนแท่งสีเดียวกันติดกันขั้นต่ำก่อนเริ่มรูปแบบ (N) — ใช้เมื่อติ๊ก W&M", minval=1, maxval=50, group="Entry Strategy", display=display.none)
 nwTol      = input.float(0.0, "NoWick: ไส้ที่ยอมรับได้ (หน่วยราคา) 0 = ไม่มีไส้เลย", minval=0.0, step=0.01, group="Entry Strategy", display=display.none,
      tooltip="แท่ง no wick = High เท่ากับด้านบนของตัวแท่ง และ Low เท่ากับด้านล่างของตัวแท่ง (บนกราฟ Renko ของ TradingView แท่งขึ้นมีไส้ล่าง / แท่งลงมีไส้บน)\nใส่ค่ามากกว่า 0 ถ้าอยากยอมให้มีไส้เล็กน้อย")
 prevModeIn = input.string("Immediate previous bar", "Compare with previous", options=["Immediate previous bar", "Last Bull/Bear"], group="Entry Strategy", display=display.none,
@@ -108,7 +118,7 @@ monthlyTablePosStr  = input.string("Bottom Center", "▶ ตำแหน่ง�
 weekdayTablePosStr  = input.string("Top Right",     "▶ ตำแหน่งตาราง Weekday",          options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Stats · Tables", display=display.none)
 settingsTablePosStr = input.string("Bottom Left",   "▶ ตำแหน่งตาราง Settings Summary", options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Stats · Tables", display=display.none)
 showOutlook = input.bool(true, "Show Pattern Outlook (คาดการณ์ pattern ของ brick ที่กำลังก่อตัว)", group="Stats · Tables", display=display.none,
-     tooltip="ตารางคาดการณ์ว่าถ้า brick ที่กำลังก่อตัวปิดเป็นสีเขียว/แดง จะเกิด pattern ไหนบ้าง (ทุก Entry ไม่ขึ้นกับ Entry mode ที่เลือก) แสดงเฉพาะตอนตลาดเปิด (realtime)")
+     tooltip="ตารางคาดการณ์ว่าถ้า brick ที่กำลังก่อตัวปิดเป็นสีเขียว/แดง จะเกิด pattern ไหนบ้าง (ทุก Entry ไม่ขึ้นกับช่องที่ติ๊ก) แสดงเฉพาะตอนตลาดเปิด (realtime)")
 outlookTablePosStr  = input.string("Top Left", "▶ ตำแหน่งตาราง Pattern Outlook", options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group="Stats · Tables", display=display.none)
 
 // ---------- ค่าที่คำนวณจากการตั้งค่าด้านบน (ไม่ใช่ช่องตั้งค่า) ----------
@@ -200,17 +210,16 @@ refBullL = prevMode == "Last Bull/Bear" ? lastBullL : (bull[1] ? low[1]  : na)
 refBearH = prevMode == "Last Bull/Bear" ? lastBearH : (bear[1] ? high[1] : na)
 refBearL = prevMode == "Last Bull/Bear" ? lastBearL : (bear[1] ? low[1]  : na)
 
-bool useAll    = entryMode == "All (Engulf + Reversal + NoWick)" or entryMode == "All + Pattern"
-bool usePat    = entryMode == "W&M" or entryMode == "All + Pattern"
-bool useRRGR   = entryMode == "Reverse RGR"
-bool useRGR    = entryMode == "RGR" or entryMode == "All + Pattern"
-bool useRE2    = entryMode == "RevEngulf02" or entryMode == "All + Pattern"
-bool useFT     = entryMode == "FollowTrend" or entryMode == "All + Pattern"
-bool useDbl    = entryMode == "Double Bottom/Top (3-2-2-3)" or entryMode == "All + Pattern"
-bool useCover  = entryMode == "Reverse Engulf" or entryMode == "All + Pattern"
-bool useEngulf = useAll or entryMode == "Engulf" or entryMode == "Engulf + Reversal" or entryMode == "Engulf + NoWick"
-bool useRev    = useAll or entryMode == "Reversal" or entryMode == "Engulf + Reversal" or entryMode == "Reversal + NoWick"
-bool useNW     = useAll or entryMode == "NoWick Reversal" or entryMode == "Engulf + NoWick" or entryMode == "Reversal + NoWick"
+bool useEngulf = enEngulf
+bool useRev    = enRev
+bool useNW     = enNW
+bool usePat    = enPat
+bool useCover  = enCover
+bool useDbl    = enDbl
+bool useFT     = enFT
+bool useRE2    = enRE2
+bool useRGR    = enRGR
+bool useRRGR   = enRRGR and not enRGR   // RGR กับ Reverse RGR สวนกัน ใช้ RGR ก่อน
 engulfBull = useEngulf and bull and not na(refBullH) and high >= refBullH - tol and low <= refBullL + tol
 engulfBear = useEngulf and bear and not na(refBearH) and high >= refBearH - tol and low <= refBearL + tol
 
@@ -640,7 +649,9 @@ f_drawStats() =>
     string posStr = pos == 1 ? "BUY @ " + str.tostring(entryPrice, format.mintick) : pos == -1 ? "SELL @ " + str.tostring(entryPrice, format.mintick) : "Flat"
 
     // ---- ตารางหลัก: การ์ดตัวเลข 4 ช่อง + รายละเอียดแบบย่อ ----
-    string modeLbl = str.startswith(entryMode, "All") ? "All patterns" : entryMode
+    int    nSel    = (useEngulf ? 1 : 0) + (useRev ? 1 : 0) + (useNW ? 1 : 0) + (usePat ? 1 : 0) + (useCover ? 1 : 0) + (useDbl ? 1 : 0) + (useFT ? 1 : 0) + (useRE2 ? 1 : 0) + (useRGR ? 1 : 0) + (useRRGR ? 1 : 0)
+    string selNm   = (useEngulf ? "Engulf" : useRev ? "Reversal" : useNW ? "NoWick" : usePat ? "W&M" : useCover ? "Rev.Engulf" : useDbl ? "Double" : useFT ? "FollowTrend" : useRE2 ? "RevEngulf02" : useRGR ? "RGR" : "Reverse RGR")
+    string modeLbl = nSel == 0 ? "No entry selected" : nSel == 1 ? selNm : str.tostring(nSel) + " patterns"
     color  posCol  = pos == 1 ? lxGreen : pos == -1 ? lxRed : lxMuted
     string posTag  = pos == 1 ? "BUY" : pos == -1 ? "SELL" : "FLAT"
     string maxWR   = maxW > 0 ? "W" + str.tostring(maxW) + " · " + (totalCnt == 0 ? "-" : "+" + str.tostring(maxWinR, "#.##") + "R") + "   " + maxWDateStr : "-"

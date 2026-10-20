@@ -32,25 +32,20 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 - **ตารางรายเดือน (Monthly):** สีพื้นแต่ละเดือนตามผล เขียว = กำไร แดง = ขาดทุน ยิ่งเข้มยิ่งมาก (เทียบกับเดือนที่ผลสูงสุดในช่วงที่ดู) ★ = เดือนที่ดีที่สุด
 - **Pattern Outlook** (เปิด/ปิดที่ `Show Pattern Outlook` กลุ่ม Stats · Tables, ตำแหน่งตั้งได้): คาดการณ์ว่า **ถ้า brick ที่กำลังก่อตัวปิดเป็นขึ้น (▲) หรือลง (▼)** จะเกิด pattern ไหนบ้าง และโอกาสเกิดเท่าไร ณ tick นั้น
   - **หัวตาราง:** เวลา (วินาที), ราคาปัจจุบัน, ขนาด 1 brick, ระดับราคาที่ brick ขึ้น/ลงจะปิด + ระยะที่เหลือ + % โอกาสแตะระดับนั้นก่อน
-  - **แต่ละแถวคือ 1 pattern** (Engulf, Reversal, NoWick Rev, W&M, Reverse Engulf, Double B/T, FollowTrend, RevEngulf02, RGR, RevRGR) **ไม่ขึ้นกับ Entry mode ที่เลือก** ● = โหมดที่ Entry mode นำไปเทรดจริง ○ = เป็นแค่การดู คอลัมน์ "▲ Up / ▼ Down บอกว่าเกิดสัญญาณ BUY หรือ SELL และคอลัมน์ **% เกิด** คือโอกาสที่ pattern นั้นเกิด ณ ราคาตอนนี้ (รวมทั้งสองทิศถ้าเกิดได้ทั้งคู่) แถวที่เกิดได้จะถูกไฮไลต์
+  - **แต่ละแถวคือ 1 pattern** (Engulf, Reversal, NoWick Rev, W&M, Reverse Engulf, Double B/T, FollowTrend, RevEngulf02, RGR, RevRGR) **ไม่ขึ้นกับช่องที่ติ๊ก** ● = pattern ที่ติ๊กไว้และนำไปเทรดจริง ○ = เป็นแค่การดู คอลัมน์ "▲ Up / ▼ Down บอกว่าเกิดสัญญาณ BUY หรือ SELL และคอลัมน์ **% เกิด** คือโอกาสที่ pattern นั้นเกิด ณ ราคาตอนนี้ (รวมทั้งสองทิศถ้าเกิดได้ทั้งคู่) แถวที่เกิดได้จะถูกไฮไลต์
   - % คำนวณจากระยะราคาแบบ random walk (ยิ่งใกล้ระดับไหนยิ่งมีโอกาสแตะก่อน) ไม่ใช่การพยากรณ์ทิศ อัปเดตทุก tick
   - ทำงานตอนตลาดเปิด (LIVE) และตอนตลาดปิด (ประเมินจาก brick ล่าสุดที่ปิด ป้าย CLOSED) ต้องมี brick อย่างน้อย 8 อัน
   - ไส้ของ brick สมมติประมาณจากราคาสูง/ต่ำของแท่งที่กำลังก่อตัว (ไส้อาจยาวขึ้นก่อน brick ปิด) pattern ที่ต้องดูไส้ (Engulf, Reversal, NoWick, Reverse Engulf, RevEngulf02) จึงเป็นการประมาณ ผลจริงตัดสินตอน brick ปิด
   - ตารางนี้เป็นเพียงการดู ไม่ส่ง Alert และไม่เปิดออเดอร์
 
-## เลือกเงื่อนไขเข้า: **Entry mode** (กลุ่ม **Entry Strategy** ใน Indicator)
-เลือกจาก dropdown:
-- **`Engulf`** (ค่าเริ่มต้น) แบบเดิม: แท่งสีเดียวกันที่ครอบ High-Low ของแท่งก่อนหน้า
-- **`Reversal`** แบบครอบ High-Low (ตารางด้านล่าง)
-- **`NoWick Reversal`** แบบแท่งไม่มีไส้ (ด้านล่าง)
-- **`W&M`** แบบรูปแบบแท่งเรียงกัน (ด้านล่าง) 
-- **`Reverse Engulf`** แบบแดงคลุมเขียว (ด้านล่าง) 
-- **`Double Bottom/Top (3-2-2-3)`** แบบ Double Bottom/Top (ด้านล่าง)  
-- **`FollowTrend`** แบบตามเทรนด์ (ด้านล่าง) 
-- **`RevEngulf02`** แบบแดงคลุมแดง (ด้านล่าง) และ `All + Pattern` = W&M + Reverse Engulf + Double + FollowTrend + RevEngulf02 + RGR
-- แบบที่มี `+` = ใช้หลายเงื่อนไขร่วมกัน (`Engulf + Reversal`, `Engulf + NoWick`, `Reversal + NoWick`, `All`) ข้อไหนเกิดก่อนก็เข้า
-
-ช่อง **Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N)** ใช้เมื่อเลือก Reversal (ค่าเริ่มต้น 4)
+## เลือกเงื่อนไขเข้า: ติ๊ก pattern ที่ต้องการ (กลุ่ม **Entry Strategy** ใน Indicator)
+แต่ละ pattern เป็นช่องติ๊กของตัวเอง **ติ๊กได้หลายช่องพร้อมกัน** ข้อไหนเกิดก่อนก็เข้า (ค่าเริ่มต้น: ติ๊กเฉพาะ Engulf) ถ้าไม่ติ๊กเลย = ไม่เปิดออเดอร์ใหม่
+- **`Engulf`** แบบเดิม: แท่งสีเดียวกันที่ครอบ High-Low ของแท่งก่อนหน้า
+- **`Reversal`** แบบครอบ High-Low (ตารางด้านล่าง) ตั้ง N ที่ช่อง `Reversal: ...`
+- **`NoWick Reversal`** แบบแท่งไม่มีไส้ (ด้านล่าง) ตั้ง N ที่ช่อง `NoWick Reversal: ...`
+- **`W&M`**, **`Reverse Engulf`**, **`Double Bottom/Top`**, **`FollowTrend`**, **`RevEngulf02`**, **`RGR`**, **`Reverse RGR`** ดูเงื่อนไขแต่ละแบบด้านล่าง
+- **`RGR` กับ `Reverse RGR` สวนกัน** (แท่งเดียวกันเกิดทั้ง Buy และ Sell) ถ้าติ๊กทั้งคู่ จะใช้เฉพาะ RGR
+- ถ้าติ๊กหลาย pattern ที่ให้สัญญาณคนละฝั่งในแท่งเดียวกัน (เช่น Reversal Buy กับ RGR Sell เกิดตรงกัน ซึ่งปกติแท่งเดียวไม่เป็นทั้งสองสี จึงเกิดน้อยมาก) Buy ชนะ
 
 ### เงื่อนไขแบบ NoWick Reversal (ใหม่)
 | ทิศ | เงื่อนไข |
@@ -71,7 +66,7 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 | **Buy** | แดง → เขียว → **แดง (เข้า Buy ที่แท่งนี้)** |
 | **Sell** | เขียว → แดง → **เขียว (เข้า Sell ที่แท่งนี้)** |
 
-- **ไม่รวมใน `All + Pattern`** เพราะสวนกับ RGR (แท่งเดียวกันจะเกิดทั้ง Buy และ Sell) ต้องเลือกเป็นโหมดเดี่ยว ป้ายเป็น `Buy Rev RGR` / `Sell Rev RGR`
+- สวนกับ RGR ใช้พร้อมกันไม่ได้ (ถ้าติ๊กทั้งคู่ใช้เฉพาะ RGR) ป้ายเป็น `Buy Rev RGR` / `Sell Rev RGR`
 
 ### เงื่อนไขแบบ RGR (ใหม่)
 
@@ -310,7 +305,7 @@ TradingView เรียกเข้าเครื่องคุณตรง�
 | `Renko Exit Buy` | `{"action":"close","event":"exit","id":"xl-{{timenow}}","ts":"{{timenow}}"}` | Close Position + Cancel All |
 | `Renko Exit Sell` | `{"action":"close","event":"exit","id":"xs-{{timenow}}","ts":"{{timenow}}"}` | Close Position + Cancel All |
 
-- **ชื่อ Condition ที่ขึ้นในรายการ** ใช้ได้กับทุก Entry mode (Engulf, Reversal, W&M ฯลฯ) ตัวสัญญาณมาจากโหมดที่เลือกใน Indicator
+- **ชื่อ Condition ที่ขึ้นในรายการ** ใช้ได้กับทุก pattern (Engulf, Reversal, W&M ฯลฯ) ตัวสัญญาณมาจาก pattern ที่ติ๊กไว้ใน Indicator
 - **Webhook URL ต้องมี `?secret=`** ทุก Alert แบบ B: `https://โดเมนของคุณ.ngrok-free.dev/?secret=รหัสของคุณ` เพราะข้อความด้านบนไม่มี secret
 - ตัว `{{timenow}}` เป็นตัวแปรของ TradingView ใส่ตามนี้เป๊ะ ไม่ต้องแทนค่าเอง
 - Frequency = **Once Per Bar**
