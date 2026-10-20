@@ -14,16 +14,16 @@ indicator("RENKO-ENGULF-v6", shorttitle="RNK-ENGREV", overlay=true, max_lines_co
 // ==========================================
 // ---------- ENTRY  (เงื่อนไขเข้า) ----------
 // ติ๊กเลือกได้หลาย pattern พร้อมกัน (ข้อไหนเกิดก่อนก็เข้า) ถ้าไม่ติ๊กเลย = ไม่เปิดออเดอร์ใหม่
-enEngulf = input.bool(true,  "Engulf — แท่งสีเดียวกันครอบ High-Low ของแท่งก่อนหน้า", group="Entry Strategy", display=display.none)
-enRev    = input.bool(false, "Reversal — แดงติดกัน ≥ N แล้วเขียวที่ High สูงกว่า/Low ต่ำกว่าแท่งล่าสุด (Sell ตรงข้าม)", group="Entry Strategy", display=display.none)
-enNW     = input.bool(false, "NoWick Reversal — ติดกัน ≥ N แล้วกลับสี โดยแท่งที่ติดกันกับแท่งที่เกิดไม่มีไส้", group="Entry Strategy", display=display.none)
-enPat    = input.bool(false, "W&M — Sell: แดง ≥ N > เขียว > แดง > เขียว > แดง / Buy สลับสี", group="Entry Strategy", display=display.none)
-enCover  = input.bool(false, "Reverse Engulf — Buy: เขียว > แดงคลุมแท่งแรก > เขียว > เขียว / Sell สลับสี", group="Entry Strategy", display=display.none)
-enDbl    = input.bool(false, "Double Bottom/Top — Buy: แดง ≥ 3 > เขียว 2 > แดง 2 > เขียว 3 / Sell สลับสี", group="Entry Strategy", display=display.none)
-enFT     = input.bool(false, "FollowTrend — Sell: แดง ≥ 3 > เขียว 2 > แดง 1 > เขียว 1 > แดง 1 / Buy สลับสี", group="Entry Strategy", display=display.none)
-enRE2    = input.bool(false, "RevEngulf02 — Buy: แดงไม่มีไส้ > แดงคลุมทั้งแท่ง > เขียวที่ Low ต่ำกว่า / Sell สลับสี", group="Entry Strategy", display=display.none)
-enRGR    = input.bool(false, "RGR — Sell: แดง > เขียว > แดง / Buy: เขียว > แดง > เขียว", group="Entry Strategy", display=display.none)
-enRRGR   = input.bool(false, "Reverse RGR — Buy: แดง > เขียว > แดง / Sell: เขียว > แดง > เขียว (ถ้าติ๊ก RGR ด้วย จะไม่ใช้ Reverse RGR เพราะสวนกัน)", group="Entry Strategy", display=display.none,
+enEngulf = input.bool(true,  "Engulf", group="Entry Strategy", display=display.none)
+enRev    = input.bool(false, "Reversal", group="Entry Strategy", display=display.none)
+enNW     = input.bool(false, "NoWick Reversal", group="Entry Strategy", display=display.none)
+enPat    = input.bool(false, "W&M", group="Entry Strategy", display=display.none)
+enCover  = input.bool(false, "Reverse Engulf", group="Entry Strategy", display=display.none)
+enDbl    = input.bool(false, "Double Bottom/Top", group="Entry Strategy", display=display.none)
+enFT     = input.bool(false, "FollowTrend", group="Entry Strategy", display=display.none)
+enRE2    = input.bool(false, "RevEngulf02", group="Entry Strategy", display=display.none)
+enRGR    = input.bool(false, "RGR", group="Entry Strategy", display=display.none)
+enRRGR   = input.bool(false, "Reverse RGR", group="Entry Strategy", display=display.none,
      tooltip="Exit / TP / SL ใช้ค่าเดิมทุก pattern\nRGR กับ Reverse RGR สวนกันในแท่งเดียวกัน จึงใช้พร้อมกันไม่ได้ ถ้าติ๊กทั้งคู่จะใช้เฉพาะ RGR")
 revMin     = input.int(4, "Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อติ๊ก Reversal", minval=1, maxval=50, group="Entry Strategy", display=display.none)
 nwMin      = input.int(4, "NoWick Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อติ๊ก NoWick Reversal", minval=1, maxval=50, group="Entry Strategy", display=display.none)
