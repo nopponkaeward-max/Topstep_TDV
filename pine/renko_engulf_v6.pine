@@ -13,8 +13,8 @@ indicator("RENKO-ENGULF-v6", shorttitle="RNK-ENGREV", overlay=true, max_lines_co
 // --- 1. INPUTS ---
 // ==========================================
 // ---------- ENTRY  (เงื่อนไขเข้า) ----------
-entryMode  = input.string("Engulf", "Entry mode", options=["Engulf", "Reversal", "NoWick Reversal", "Engulf + Reversal", "Engulf + NoWick", "Reversal + NoWick", "All (Engulf + Reversal + NoWick)", "W&M", "Reverse Engulf", "Double Bottom/Top (3-2-2-3)", "FollowTrend", "RevEngulf02", "All + Pattern"], group="Entry Strategy", display=display.none,
-     tooltip="Engulf = เข้าเมื่อแท่งสีเดียวกันครอบ High-Low ของแท่งก่อนหน้า (แบบเดิม)\nReversal = Buy: มีแท่งแดงติดกันก่อนหน้า >= N แท่ง แล้วเกิดแท่งเขียวที่ High สูงกว่า และ Low ต่ำกว่าแท่งแดงล่าสุด / Sell: ตรงข้าม\nNoWick Reversal = Buy: มีแท่งแดงติดกัน >= N แท่ง แล้วเกิดแท่งเขียว โดย 'แท่งแดงที่ติดกับแท่งเขียว' และ 'แท่งเขียวที่เกิด' ต้อง **ไม่มีไส้ (no wick)** ทั้งคู่ (แท่งอื่นมีไส้ได้) / Sell: ตรงข้าม\nแบบที่มี + = ใช้หลายเงื่อนไขร่วมกัน ข้อไหนเกิดก่อนก็เข้า\nW&M = Sell: แดง >= N แท่ง > เขียว 1 > แดง 1 > เขียว 1 > แดง 1 (เข้าที่แท่งแดงสุดท้าย) / Buy: สลับสี (เขียว N > แดง > เขียว > แดง > เขียว)\nReverse Engulf = Buy: เขียว > แดงที่ High-Low คลุมแท่งเขียวแรก > เขียว 2 แท่ง (เข้าที่เขียวแท่งที่ 2) / Sell: สลับสี\nDouble = Buy: แดง >= 3 > เขียว 2 > แดง 2 > เขียว 3 (เข้าที่เขียวแท่งที่ 3) / Sell: สลับสี (เขียว >= 3 > แดง 2 > เขียว 2 > แดง 3)\nFollowTrend = Sell: แดง >= 3 > เขียว 2 > แดง 1 > เขียว 1 > แดง 1 (เข้าที่แดงสุดท้าย) / Buy: สลับสี\nRevEngulf02 = Buy: แดงไม่มีไส้ > แดงที่ High-Low คลุมแท่งแรกทั้งหมด > เขียวที่ Low ต่ำกว่า Low ของแดงก่อนหน้า / Sell: สลับสี (เขียวไม่มีไส้ > เขียวคลุม > แดงที่ High สูงกว่า High ของเขียวก่อนหน้า)\nExit / TP / SL ใช้ค่าเดิมทุกโหมด")
+entryMode  = input.string("Engulf", "Entry mode", options=["Engulf", "Reversal", "NoWick Reversal", "Engulf + Reversal", "Engulf + NoWick", "Reversal + NoWick", "All (Engulf + Reversal + NoWick)", "W&M", "Reverse Engulf", "Double Bottom/Top (3-2-2-3)", "FollowTrend", "RevEngulf02", "RGR", "All + Pattern"], group="Entry Strategy", display=display.none,
+     tooltip="Engulf = เข้าเมื่อแท่งสีเดียวกันครอบ High-Low ของแท่งก่อนหน้า (แบบเดิม)\nReversal = Buy: มีแท่งแดงติดกันก่อนหน้า >= N แท่ง แล้วเกิดแท่งเขียวที่ High สูงกว่า และ Low ต่ำกว่าแท่งแดงล่าสุด / Sell: ตรงข้าม\nNoWick Reversal = Buy: มีแท่งแดงติดกัน >= N แท่ง แล้วเกิดแท่งเขียว โดย 'แท่งแดงที่ติดกับแท่งเขียว' และ 'แท่งเขียวที่เกิด' ต้อง **ไม่มีไส้ (no wick)** ทั้งคู่ (แท่งอื่นมีไส้ได้) / Sell: ตรงข้าม\nแบบที่มี + = ใช้หลายเงื่อนไขร่วมกัน ข้อไหนเกิดก่อนก็เข้า\nW&M = Sell: แดง >= N แท่ง > เขียว 1 > แดง 1 > เขียว 1 > แดง 1 (เข้าที่แท่งแดงสุดท้าย) / Buy: สลับสี (เขียว N > แดง > เขียว > แดง > เขียว)\nReverse Engulf = Buy: เขียว > แดงที่ High-Low คลุมแท่งเขียวแรก > เขียว 2 แท่ง (เข้าที่เขียวแท่งที่ 2) / Sell: สลับสี\nDouble = Buy: แดง >= 3 > เขียว 2 > แดง 2 > เขียว 3 (เข้าที่เขียวแท่งที่ 3) / Sell: สลับสี (เขียว >= 3 > แดง 2 > เขียว 2 > แดง 3)\nFollowTrend = Sell: แดง >= 3 > เขียว 2 > แดง 1 > เขียว 1 > แดง 1 (เข้าที่แดงสุดท้าย) / Buy: สลับสี\nRevEngulf02 = Buy: แดงไม่มีไส้ > แดงที่ High-Low คลุมแท่งแรกทั้งหมด > เขียวที่ Low ต่ำกว่า Low ของแดงก่อนหน้า / Sell: สลับสี (เขียวไม่มีไส้ > เขียวคลุม > แดงที่ High สูงกว่า High ของเขียวก่อนหน้า)\nRGR = Buy: แดง > เขียว > แดง (เข้าที่แดงแท่งสุดท้าย) / Sell: เขียว > แดง > เขียว (เข้าที่เขียวแท่งสุดท้าย) นับ 3 แท่งล่าสุดตามสี ไม่จำกัดจำนวนแท่งก่อนหน้า\nExit / TP / SL ใช้ค่าเดิมทุกโหมด")
 revMin     = input.int(4, "Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อ Entry mode มี Reversal", minval=1, maxval=50, group="Entry Strategy", display=display.none)
 nwMin      = input.int(4, "NoWick Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N) — ใช้เมื่อ Entry mode มี NoWick", minval=1, maxval=50, group="Entry Strategy", display=display.none)
 patMin     = input.int(3, "W&M: จำนวนแท่งสีเดียวกันติดกันขั้นต่ำก่อนเริ่มรูปแบบ (N) — ใช้เมื่อ Entry mode เป็น W&M", minval=1, maxval=50, group="Entry Strategy", display=display.none)
@@ -202,6 +202,7 @@ refBearL = prevMode == "Last Bull/Bear" ? lastBearL : (bear[1] ? low[1]  : na)
 
 bool useAll    = entryMode == "All (Engulf + Reversal + NoWick)" or entryMode == "All + Pattern"
 bool usePat    = entryMode == "W&M" or entryMode == "All + Pattern"
+bool useRGR    = entryMode == "RGR" or entryMode == "All + Pattern"
 bool useRE2    = entryMode == "RevEngulf02" or entryMode == "All + Pattern"
 bool useFT     = entryMode == "FollowTrend" or entryMode == "All + Pattern"
 bool useDbl    = entryMode == "Double Bottom/Top (3-2-2-3)" or entryMode == "All + Pattern"
@@ -249,6 +250,10 @@ bool ftBuy  = useFT and bull and grnRun == 1 and redRun[1] == 1 and grnRun[2] ==
 // RevEngulf02 (Sell = สลับสี): แดง no wick [2] > แดง [1] คลุม High-Low ของ [2] ทั้งหมด > เขียว (แท่งปัจจุบัน) ที่ Low ต่ำกว่า Low ของ [1]
 bool re2Buy = useRE2 and bull and bear[1] and bear[2] and noWick[2] and high[1] >= high[2] - tol and low[1] <= low[2] + tol and low < low[1]
 bool re2Sell = useRE2 and bear and bull[1] and bull[2] and noWick[2] and high[1] >= high[2] - tol and low[1] <= low[2] + tol and high > high[1]
+
+// RGR (สวนสีของแท่งล่าสุด): Buy = แดง > เขียว > แดง (แท่งปัจจุบันเป็นแดง) / Sell = เขียว > แดง > เขียว (แท่งปัจจุบันเป็นเขียว)
+bool rgrBuy  = useRGR and bear and bull[1] and bear[2]
+bool rgrSell = useRGR and bull and bear[1] and bull[2]
 
 if bull
     lastBullH := high
@@ -366,8 +371,8 @@ int  minNow     = hour(sigTs, "UTC+7") * 60 + minute(sigTs, "UTC+7")
 bool inBlackout = tfEnable and (f_inWin(tfSess1, minNow) or f_inWin(tfSess2, minNow) or f_inWin(tfSess3, minNow))
 bgcolor(showTfBg and inBlackout ? color.new(color.gray, 85) : na, title="No-trade window")
 
-bool candBuy  = engineOn and allowLong and not inBlackout and (engulfBull or revBull or nwBull or patBuy or covBuy or dblBuy or ftBuy or re2Buy)
-bool candSell = engineOn and allowShort and not inBlackout and (engulfBear or revBear or nwBear or patSell or covSell or dblSell or ftSell or re2Sell)
+bool candBuy  = engineOn and allowLong and not inBlackout and (engulfBull or revBull or nwBull or patBuy or covBuy or dblBuy or ftBuy or re2Buy or rgrBuy)
+bool candSell = engineOn and allowShort and not inBlackout and (engulfBear or revBear or nwBear or patSell or covSell or dblSell or ftSell or re2Sell or rgrSell)
 // โหมด TopstepX Clicker: ห้ามเข้า "ทิศเดิม" ใน brick เดียวกับที่เพิ่งออก เพราะบอทจะได้คำสั่งสวนกัน (sell แล้ว buy) ลำดับอาจสลับ
 // แต่การออกแล้วกลับทิศ (ออก long = sell + เข้า short = sell / ออก short = buy + เข้า long = buy) คำสั่งเหมือนกัน ทำได้
 bool reEntry = (exitLong and candBuy) or (exitShort and candSell)
@@ -385,7 +390,7 @@ if buySig or sellSig
     array.push(oTime, time)
     color sideCol = buySig ? color.green : color.red
     label.new(bar_index, close, "", style=label.style_circle, color=color.new(sideCol, 70), size=size.large)
-    label.new(bar_index, buySig ? low : high, buySig ? (engulfBull ? "Buy\nEngulf" : revBull ? "Buy\nRev" : patBuy ? "Buy\nW&M" : covBuy ? "Buy\nReverse Engulf" : dblBuy ? "Buy\nDouble" : ftBuy ? "Buy\nFollowTrend" : re2Buy ? "Buy\nRevEngulf02" : "Buy\nNoWick") : (engulfBear ? "Sell\nEngulf" : revBear ? "Sell\nRev" : patSell ? "Sell\nW&M" : covSell ? "Sell\nReverse Engulf" : dblSell ? "Sell\nDouble" : ftSell ? "Sell\nFollowTrend" : re2Sell ? "Sell\nRevEngulf02" : "Sell\nNoWick"),
+    label.new(bar_index, buySig ? low : high, buySig ? (engulfBull ? "Buy\nEngulf" : revBull ? "Buy\nRev" : patBuy ? "Buy\nW&M" : covBuy ? "Buy\nReverse Engulf" : dblBuy ? "Buy\nDouble" : ftBuy ? "Buy\nFollowTrend" : re2Buy ? "Buy\nRevEngulf02" : rgrBuy ? "Buy\nRGR" : "Buy\nNoWick") : (engulfBear ? "Sell\nEngulf" : revBear ? "Sell\nRev" : patSell ? "Sell\nW&M" : covSell ? "Sell\nReverse Engulf" : dblSell ? "Sell\nDouble" : ftSell ? "Sell\nFollowTrend" : re2Sell ? "Sell\nRevEngulf02" : rgrSell ? "Sell\nRGR" : "Sell\nNoWick"),
          style = buySig ? label.style_label_up : label.style_label_down, color=color.new(sideCol, 25), textcolor=color.white, size=orderLabelSize)
     if showEntryLine
         line.new(bar_index, close, bar_index + 6, close, color=color.new(sideCol, 30), width=2)
@@ -1020,7 +1025,7 @@ f_drawToday(table tbl, int shown, int rowsTotal) =>
 // ประเมิน "ถ้า brick ที่กำลังก่อตัวปิดเป็นขึ้น/ลง" ว่าเงื่อนไขของทุก Entry เป็นจริงไหม (ไม่ขึ้นกับ Entry mode ที่เลือก)
 // ใช้สูตรเดียวกับสัญญาณจริงด้านบน แต่แทนแท่งปัจจุบันด้วย brick สมมติ (hO/hH/hL/hC) แท่งก่อนหน้า [1]... คือ brick ที่ปิดแล้ว
 // ไส้ของ brick สมมติประมาณจากราคาสูง/ต่ำของแท่งที่กำลังก่อตัว (ไส้อาจยาวขึ้นก่อน brick ปิด) จึงเป็นการประมาณ ผลจริงตัดสินตอน brick ปิด
-// ผลลัพธ์เรียง: Engulf, Reversal, NoWick, W&M, Reverse Engulf, Double, FollowTrend, RevEngulf02
+// ผลลัพธ์เรียง: Engulf, Reversal, NoWick, W&M, Reverse Engulf, Double, FollowTrend, RevEngulf02, RGR  (ตัวแรก 8 ตัว: brick ขึ้น = BUY / ลง = SELL, RGR กลับกัน)
 f_outlookFlags(bool up, float hO, float hH, float hL, float hC) =>
     int  rr   = up ? 0 : redPrev + 1
     int  gg   = up ? grnPrev + 1 : 0
@@ -1036,7 +1041,9 @@ f_outlookFlags(bool up, float hO, float hH, float hL, float hC) =>
     bool fDbl    = up ? (gg == 3 and redRun[3] == 2 and grnRun[5] == 2 and redRun[7] >= 3) : (rr == 3 and grnRun[3] == 2 and redRun[5] == 2 and grnRun[7] >= 3)
     bool fFT     = up ? (gg == 1 and redRun[1] == 1 and grnRun[2] == 1 and redRun[3] == 2 and grnRun[5] >= 3) : (rr == 1 and grnRun[1] == 1 and redRun[2] == 1 and grnRun[3] == 2 and redRun[5] >= 3)
     bool fRE2    = up ? (bear[1] and bear[2] and noWick[2] and high[1] >= high[2] - tol and low[1] <= low[2] + tol and hL < low[1]) : (bull[1] and bull[2] and noWick[2] and high[1] >= high[2] - tol and low[1] <= low[2] + tol and hH > high[1])
-    array.from(fEngulf, fRev, fNW, fPat, fCov, fDbl, fFT, fRE2)
+    // RGR สวนสี: Buy เกิดตอน brick ปิดลง / Sell เกิดตอน brick ปิดขึ้น (ตัวสุดท้ายในอาร์เรย์ ฝั่ง BUY/SELL สลับกับ pattern อื่น)
+    bool fRGR    = up ? (bear[1] and bull[2]) : (bull[1] and bear[2])
+    array.from(fEngulf, fRev, fNW, fPat, fCov, fDbl, fFT, fRE2, fRGR)
 
 f_drawOutlook() =>
     bool live = barstate.isrealtime and not barstate.isconfirmed and bar_index >= 8
@@ -1057,8 +1064,8 @@ f_drawOutlook() =>
         float pUp   = dDn / (dUp + dDn) * 100.0   // โอกาสแตะขึ้นก่อน (random walk ไม่มีทิศ: สัดส่วนกลับกับระยะ)
         array<bool> fUp = f_outlookFlags(true,  upO, upC, math.min(upO, low), upC)
         array<bool> fDn = f_outlookFlags(false, dnO, math.max(dnO, high), dnC, dnC)
-        array<string> nm  = array.from("Engulf", "Reversal", "NoWick Rev", "W&M", "Reverse Engulf", "Double B/T", "FollowTrend", "RevEngulf02")
-        array<bool>   sel = array.from(useEngulf, useRev, useNW, usePat, useCover, useDbl, useFT, useRE2)
+        array<string> nm  = array.from("Engulf", "Reversal", "NoWick Rev", "W&M", "Reverse Engulf", "Double B/T", "FollowTrend", "RevEngulf02", "RGR")
+        array<bool>   sel = array.from(useEngulf, useRev, useNW, usePat, useCover, useDbl, useFT, useRE2, useRGR)
         table.cell(outlookTbl, 0, 1, "Price " + str.tostring(close, format.mintick) + "  ·  brick " + str.tostring(bx, format.mintick), text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
         table.cell(outlookTbl, 0, 2, "▲ UP brick", text_color=lxGreen, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_left)
         table.cell(outlookTbl, 1, 2, str.tostring(upC, format.mintick) + "  (+" + str.tostring(dUp, format.mintick) + ")", text_color=lxText, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_center)
@@ -1067,11 +1074,11 @@ f_drawOutlook() =>
         table.cell(outlookTbl, 1, 3, str.tostring(dnC, format.mintick) + "  (-" + str.tostring(dDn, format.mintick) + ")", text_color=lxText, text_size=size.small, bgcolor=lxRowB, text_halign=text.align_center)
         table.cell(outlookTbl, 2, 3, str.tostring(100.0 - pUp, "#") + "%", text_color=lxRed, text_size=size.small, bgcolor=lxRowB, text_halign=text.align_center)
         table.cell(outlookTbl, 0, 4, "PATTERN  (● = Entry mode ที่เลือก)", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
-        table.cell(outlookTbl, 1, 4, "▲ BUY ถ้า Up", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
-        table.cell(outlookTbl, 2, 4, "▼ SELL ถ้า Down", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
+        table.cell(outlookTbl, 1, 4, "ถ้า ▲ Up brick", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
+        table.cell(outlookTbl, 2, 4, "ถ้า ▼ Down brick", text_color=lxColHd, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
         int nUp = 0
         int nDn = 0
-        for k = 0 to 7
+        for k = 0 to 8
             bool u = array.get(fUp, k)
             bool d = array.get(fDn, k)
             bool sk = array.get(sel, k)
@@ -1079,17 +1086,19 @@ f_drawOutlook() =>
             nUp += u ? 1 : 0
             nDn += d ? 1 : 0
             table.cell(outlookTbl, 0, 5 + k, (sk ? "● " : "○ ") + array.get(nm, k), text_color=sk ? lxText : lxMuted, text_size=size.small, bgcolor=rowBg, text_halign=text.align_left)
-            table.cell(outlookTbl, 1, 5 + k, u ? "✓ BUY" : "·", text_color=u ? lxGreen : lxDimTx, text_size=size.small, bgcolor=u ? color.new(lxGreen, 80) : rowBg, text_halign=text.align_center)
-            table.cell(outlookTbl, 2, 5 + k, d ? "✓ SELL" : "·", text_color=d ? lxRed : lxDimTx, text_size=size.small, bgcolor=d ? color.new(lxRed, 80) : rowBg, text_halign=text.align_center)
-        table.cell(outlookTbl, 0, 13, "รวมที่เกิดได้", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
-        table.cell(outlookTbl, 1, 13, str.tostring(nUp) + " pattern", text_color=nUp > 0 ? lxGreen : lxDimTx, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
-        table.cell(outlookTbl, 2, 13, str.tostring(nDn) + " pattern", text_color=nDn > 0 ? lxRed : lxDimTx, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
-        table.cell(outlookTbl, 0, 14, "% = โอกาสแตะระดับนั้นก่อน (ประมาณจากระยะ ไม่ใช่การพยากรณ์ทิศ) · ไส้ประมาณจากราคาปัจจุบัน ผลจริงตอน brick ปิด", text_color=lxDimTx, text_size=size.tiny, bgcolor=lxRowDim, text_halign=text.align_left)
+            bool upBuy = k != 8    // brick ขึ้นให้ BUY (ยกเว้น RGR ที่ให้ SELL)
+            bool dnBuy = k == 8    // brick ลงให้ SELL (ยกเว้น RGR ที่ให้ BUY)
+            table.cell(outlookTbl, 1, 5 + k, u ? (upBuy ? "✓ BUY" : "✓ SELL") : "·", text_color=u ? (upBuy ? lxGreen : lxRed) : lxDimTx, text_size=size.small, bgcolor=u ? color.new(upBuy ? lxGreen : lxRed, 80) : rowBg, text_halign=text.align_center)
+            table.cell(outlookTbl, 2, 5 + k, d ? (dnBuy ? "✓ BUY" : "✓ SELL") : "·", text_color=d ? (dnBuy ? lxGreen : lxRed) : lxDimTx, text_size=size.small, bgcolor=d ? color.new(dnBuy ? lxGreen : lxRed, 80) : rowBg, text_halign=text.align_center)
+        table.cell(outlookTbl, 0, 14, "รวมที่เกิดได้", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
+        table.cell(outlookTbl, 1, 14, str.tostring(nUp) + " pattern", text_color=nUp > 0 ? lxText : lxDimTx, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
+        table.cell(outlookTbl, 2, 14, str.tostring(nDn) + " pattern", text_color=nDn > 0 ? lxText : lxDimTx, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
+        table.cell(outlookTbl, 0, 15, "% = โอกาสแตะระดับนั้นก่อน (ประมาณจากระยะ ไม่ใช่การพยากรณ์ทิศ) · ไส้ประมาณจากราคาปัจจุบัน ผลจริงตอน brick ปิด", text_color=lxDimTx, text_size=size.tiny, bgcolor=lxRowDim, text_halign=text.align_left)
     if not array.get(lxMergedArr, 6)
         array.set(lxMergedArr, 6, true)
         table.merge_cells(outlookTbl, 0, 0, 2, 0)
         table.merge_cells(outlookTbl, 0, 1, 2, 1)
-        table.merge_cells(outlookTbl, 0, 14, 2, 14)
+        table.merge_cells(outlookTbl, 0, 15, 2, 15)
 
 // ==========================================
 // --- 6. DRAW TABLES (last bar only) ---

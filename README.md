@@ -31,7 +31,7 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 - **ตารางหลัก (Stats):** การ์ดตัวเลข 4 ช่อง (Net R, Winrate, Profit Factor, Max DD) พร้อมสถานะ BUY / SELL / FLAT มุมขวา และรายละเอียดแบบย่อ (W/L แยก Buy/Sell, streak ที่ดีที่สุด/แย่ที่สุด, แถว History)
 - **ตารางรายเดือน (Monthly):** สีพื้นแต่ละเดือนตามผล เขียว = กำไร แดง = ขาดทุน ยิ่งเข้มยิ่งมาก (เทียบกับเดือนที่ผลสูงสุดในช่วงที่ดู) ★ = เดือนที่ดีที่สุด
 - **Pattern Outlook** (เปิด/ปิดที่ `Show Pattern Outlook` กลุ่ม Stats · Tables, ตำแหน่งตั้งได้): คาดการณ์ว่า **ถ้า brick ที่กำลังก่อตัวปิดเป็นขึ้น (▲) หรือลง (▼)** จะเกิด pattern ไหนบ้าง
-  - แสดงครบทุก Entry (Engulf, Reversal, NoWick Rev, W&M, Reverse Engulf, Double B/T, FollowTrend, RevEngulf02) **ไม่ขึ้นกับ Entry mode ที่เลือก** ● = โหมดที่ Entry mode นำไปเทรดจริง ○ = เป็นแค่การดู
+  - แสดงครบทุก Entry (Engulf, Reversal, NoWick Rev, W&M, Reverse Engulf, Double B/T, FollowTrend, RevEngulf02, RGR) **ไม่ขึ้นกับ Entry mode ที่เลือก** ● = โหมดที่ Entry mode นำไปเทรดจริง ○ = เป็นแค่การดู
   - บอกระดับราคาที่ brick ขึ้น/ลงจะปิด ระยะจากราคาปัจจุบัน และ % โอกาสแตะระดับนั้นก่อน (ประมาณจากระยะแบบ random walk ไม่ใช่การพยากรณ์ทิศ)
   - แสดงเฉพาะตอนตลาดเปิด (realtime) ที่มี brick กำลังก่อตัว ถ้าตลาดปิดจะขึ้นข้อความรอ
   - ไส้ของ brick สมมติประมาณจากราคาสูง/ต่ำของแท่งที่กำลังก่อตัว (ไส้อาจยาวขึ้นก่อน brick ปิด) pattern ที่ต้องดูไส้ (Engulf, Reversal, NoWick, Reverse Engulf, RevEngulf02) จึงเป็นการประมาณ ผลจริงตัดสินตอน brick ปิด
@@ -46,7 +46,7 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 - **`Reverse Engulf`** แบบแดงคลุมเขียว (ด้านล่าง) 
 - **`Double Bottom/Top (3-2-2-3)`** แบบ Double Bottom/Top (ด้านล่าง)  
 - **`FollowTrend`** แบบตามเทรนด์ (ด้านล่าง) 
-- **`RevEngulf02`** แบบแดงคลุมแดง (ด้านล่าง) และ `All + Pattern` = W&M + Reverse Engulf + Double + FollowTrend + RevEngulf02
+- **`RevEngulf02`** แบบแดงคลุมแดง (ด้านล่าง) และ `All + Pattern` = W&M + Reverse Engulf + Double + FollowTrend + RevEngulf02 + RGR
 - แบบที่มี `+` = ใช้หลายเงื่อนไขร่วมกัน (`Engulf + Reversal`, `Engulf + NoWick`, `Reversal + NoWick`, `All`) ข้อไหนเกิดก่อนก็เข้า
 
 ช่อง **Reversal: จำนวนแท่งสีตรงข้ามติดกันขั้นต่ำ (N)** ใช้เมื่อเลือก Reversal (ค่าเริ่มต้น 4)
@@ -60,6 +60,16 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 - no wick = High เท่ากับขอบบนของตัวแท่ง และ Low เท่ากับขอบล่างของตัวแท่ง (ยอมไส้ได้ตามช่อง `NoWick: ไส้ที่ยอมรับได้` ค่าเริ่มต้น 0 บวกครึ่ง tick)
 - บนกราฟ Renko ของ TradingView แท่งขึ้นมีไส้ได้ที่ด้านล่าง ส่วนแท่งลงมีไส้ได้ที่ด้านบน (ด้านปลายแท่งไม่มีไส้)
 - ไม่ต้องครอบ High-Low ของแท่งก่อนหน้า (ต่างจาก Reversal แบบแรก) ป้ายบนกราฟเป็น `Buy NoWick` / `Sell NoWick`
+
+### เงื่อนไขแบบ RGR (ใหม่)
+
+| ฝั่ง | รูปแบบ (เก่า → ใหม่) |
+|---|---|
+| **Buy** | แดง → เขียว → **แดง (เข้า Buy ที่แท่งนี้)** |
+| **Sell** | เขียว → แดง → **เขียว (เข้า Sell ที่แท่งนี้)** |
+
+- สวนสีของแท่งล่าสุด (เข้าตามสีของแท่งแรกในลำดับ) นับแค่ 3 แท่งล่าสุดตามสี ไม่จำกัดจำนวนแท่งก่อนหน้า ไม่เช็กไส้ ป้ายเป็น `Buy RGR` / `Sell RGR`
+- เกิดบ่อยมาก (ทุกครั้งที่สลับสีสองครั้งติด) ผลวิจัยก่อนหน้าไม่พบ edge ในรูปแบบสีล้วนแบบนี้ ควรทดสอบก่อนใช้จริง
 
 ### เงื่อนไขแบบ RevEngulf02 (ใหม่)
 
