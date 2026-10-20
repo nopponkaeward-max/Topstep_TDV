@@ -523,7 +523,7 @@ var table settingsTable     = table.new(f_tablePos(settingsTablePosStr), 2, 8,  
 var table todayTbl = na   // สร้างใหม่ทุกครั้งที่วาด เพราะจำนวนแถวเปลี่ยนตามจำนวนออเดอร์ของวันที่ดู
 var table weekdayStatsTable = table.new(f_tablePos(weekdayTablePosStr),  6, 10,             bgcolor=lxRowA, frame_width=2, frame_color=lxFrame, border_width=1, border_color=lxGrid)
 
-var table outlookTbl        = table.new(f_tablePos(outlookTablePosStr),  4, 16, bgcolor=lxRowA, frame_width=2, frame_color=lxFrame, border_width=1, border_color=lxGrid)
+var table outlookTbl        = table.new(f_tablePos(outlookTablePosStr),  4, 15, bgcolor=lxRowA, frame_width=2, frame_color=lxFrame, border_width=1, border_color=lxGrid)
 
 var bool[] lxMergedArr = array.new_bool(8, false)
 
@@ -1092,9 +1092,14 @@ f_drawOutlook() =>
     bool hasHist = array.size(cBull) >= 8
     bool live    = barstate.isrealtime and not barstate.isconfirmed
     string tag   = live ? "LIVE " + str.format_time(timenow, "HH:mm:ss", statsTz) : "CLOSED"
-    table.cell(outlookTbl, 0, 0, "◆ OUTLOOK · brick ถัดไป", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg)
+    // ไม่ใช้ merge_cells: ข้อความในเซลล์ที่รวมหลายคอลัมน์ทำให้คอลัมน์ขวาสุดกว้างผิดปกติ จึงใส่ข้อความสั้นลงเซลล์เดียวและเว้นเซลล์ที่เหลือว่าง
+    table.cell(outlookTbl, 0, 0, "◆ OUTLOOK", text_color=lxTitleTx, text_size=size.small, bgcolor=lxHeadBg, text_halign=text.align_left)
+    for c = 1 to 3
+        table.cell(outlookTbl, c, 0, "", text_color=lxTitleTx, text_size=size.tiny, bgcolor=lxHeadBg)
     if not hasHist
         table.cell(outlookTbl, 0, 1, "รอ brick ≥ 8", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
+        for c = 1 to 3
+            table.cell(outlookTbl, c, 1, "", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg)
     else
         // brick ล่าสุดที่ปิด (index 0) กำหนดระดับที่ brick ถัดไปจะปิด: ต่อเนื่องจาก close / กลับทิศต้องผ่านจุดเปิดของ brick นั้น (= 2 box จาก close)
         float lc    = array.get(cClose, 0)
@@ -1117,7 +1122,10 @@ f_drawOutlook() =>
         array<bool> fDn = f_outlookFlags(false, dnO, dnH, dnC, dnC)
         array<string> nm  = array.from("Engulf", "Reversal", "NoWick", "W&M", "Rev.Engulf", "Double", "FollowTr.", "RevEng02", "RGR")
         array<bool>   sel = array.from(useEngulf, useRev, useNW, usePat, useCover, useDbl, useFT, useRE2, useRGR)
-        table.cell(outlookTbl, 0, 1, tag + " · " + str.tostring(px, format.mintick), text_color=live ? lxCyan : lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
+        table.cell(outlookTbl, 0, 1, tag, text_color=live ? lxCyan : lxMuted, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_left)
+        table.cell(outlookTbl, 1, 1, str.tostring(px, format.mintick), text_color=lxText, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
+        table.cell(outlookTbl, 2, 1, "", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg)
+        table.cell(outlookTbl, 3, 1, "", text_color=lxMuted, text_size=size.tiny, bgcolor=lxSubBg)
         table.cell(outlookTbl, 0, 2, "▲ Up", text_color=lxGreen, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_left)
         table.cell(outlookTbl, 1, 2, str.tostring(upC, format.mintick), text_color=lxText, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_center)
         table.cell(outlookTbl, 2, 2, "+" + str.tostring(dUp, format.mintick), text_color=lxMuted, text_size=size.small, bgcolor=lxRowA, text_halign=text.align_center)
@@ -1151,12 +1159,6 @@ f_drawOutlook() =>
         table.cell(outlookTbl, 1, 14, str.tostring(nUp), text_color=nUp > 0 ? lxText : lxDimTx, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
         table.cell(outlookTbl, 2, 14, str.tostring(nDn), text_color=nDn > 0 ? lxText : lxDimTx, text_size=size.tiny, bgcolor=lxSubBg, text_halign=text.align_center)
         table.cell(outlookTbl, 3, 14, "", text_color=lxDimTx, text_size=size.tiny, bgcolor=lxSubBg)
-        table.cell(outlookTbl, 0, 15, "● = เลือกอยู่ · % ประมาณจากระยะราคา", text_color=lxDimTx, text_size=size.tiny, bgcolor=lxRowDim, text_halign=text.align_left)
-    if not array.get(lxMergedArr, 6)
-        array.set(lxMergedArr, 6, true)
-        table.merge_cells(outlookTbl, 0, 0, 3, 0)
-        table.merge_cells(outlookTbl, 0, 1, 3, 1)
-        table.merge_cells(outlookTbl, 0, 15, 3, 15)
 
 // ==========================================
 // --- 6. DRAW TABLES (last bar only) ---
