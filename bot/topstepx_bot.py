@@ -116,7 +116,7 @@ def execute(cfg, action, event, t_recv=None, lag_ms=None, close_first=False):
     try:
         if close_first:
             press_close(cfg)
-            time.sleep(cfg.get("cancel_delay_seconds", 0.1))
+            time.sleep(cfg.get("entry_delay_seconds", 0.05))   # พักสั้นๆ ระหว่างปิดกับเข้า (เดิมใช้ cancel_delay_seconds 0.1)
         if action == "close":
             press_close(cfg)
         else:
