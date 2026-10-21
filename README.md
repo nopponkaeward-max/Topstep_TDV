@@ -36,10 +36,10 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
   - **ตารางรายเดือน และ ตารางวันในสัปดาห์:** เพิ่มคอลัมน์ของแต่ละ pattern ที่ติ๊กไว้ แสดง `W/L  Winrate  Net R` ของเดือน/วันนั้นของ pattern นั้น พร้อมแถว TOTAL
   - **ตารางรายวัน:** รายการเทรดของแต่ละวันบอกชื่อ pattern เช่น `Buy RGR +1R`
   - **ตารางรายออเดอร์ (Today / Pick Date):** เพิ่มคอลัมน์ `BY` บอก pattern ที่เข้า และ TP / SL ถ้าออกด้วย TP/SL
-  - ถ้าหลาย pattern เกิดพร้อมกันในแท่งเดียว ผลนับให้ pattern แรกตามลำดับเดียวกับป้ายบนกราฟ (Engulf, Reversal, W&M, Reverse Engulf, Double, FollowTrend, RevEngulf02, RGR, Reverse RGR, NoWick)
+  - ถ้าหลาย pattern เกิดพร้อมกันในแท่งเดียว ผลนับให้ pattern แรกตามลำดับเดียวกับป้ายบนกราฟ (Engulf, Reversal, W&M, Reverse Engulf, Double, FollowTrend, RevEngulf02, RGR, Reverse RGR, NoWick Engulf, NoWick)
 - **Pattern Outlook** (เปิด/ปิดที่ `Show Pattern Outlook` กลุ่ม Stats · Tables, ตำแหน่งตั้งได้): คาดการณ์ว่า **ถ้า brick ที่กำลังก่อตัวปิดเป็นขึ้น (▲) หรือลง (▼)** จะเกิด pattern ไหนบ้าง และโอกาสเกิดเท่าไร ณ tick นั้น
   - **หัวตาราง:** เวลา (วินาที), ราคาปัจจุบัน, ขนาด 1 brick, ระดับราคาที่ brick ขึ้น/ลงจะปิด + ระยะที่เหลือ + % โอกาสแตะระดับนั้นก่อน
-  - **แต่ละแถวคือ 1 pattern** (Engulf, Reversal, NoWick Rev, W&M, Reverse Engulf, Double B/T, FollowTrend, RevEngulf02, RGR, RevRGR) **ไม่ขึ้นกับช่องที่ติ๊ก** ● = pattern ที่ติ๊กไว้และนำไปเทรดจริง ○ = เป็นแค่การดู คอลัมน์ "▲ Up / ▼ Down บอกว่าเกิดสัญญาณ BUY หรือ SELL และคอลัมน์ **% เกิด** คือโอกาสที่ pattern นั้นเกิด ณ ราคาตอนนี้ (รวมทั้งสองทิศถ้าเกิดได้ทั้งคู่) แถวที่เกิดได้จะถูกไฮไลต์
+  - **แต่ละแถวคือ 1 pattern** (Engulf, Reversal, NoWick Rev, W&M, Reverse Engulf, Double B/T, FollowTrend, RevEngulf02, RGR, RevRGR, NW.Engulf) **ไม่ขึ้นกับช่องที่ติ๊ก** ● = pattern ที่ติ๊กไว้และนำไปเทรดจริง ○ = เป็นแค่การดู คอลัมน์ "▲ Up / ▼ Down บอกว่าเกิดสัญญาณ BUY หรือ SELL และคอลัมน์ **% เกิด** คือโอกาสที่ pattern นั้นเกิด ณ ราคาตอนนี้ (รวมทั้งสองทิศถ้าเกิดได้ทั้งคู่) แถวที่เกิดได้จะถูกไฮไลต์
   - % คำนวณจากระยะราคาแบบ random walk (ยิ่งใกล้ระดับไหนยิ่งมีโอกาสแตะก่อน) ไม่ใช่การพยากรณ์ทิศ อัปเดตทุก tick
   - ทำงานตอนตลาดเปิด (LIVE) และตอนตลาดปิด (ประเมินจาก brick ล่าสุดที่ปิด ป้าย CLOSED) ต้องมี brick อย่างน้อย 8 อัน
   - ไส้ของ brick สมมติประมาณจากราคาสูง/ต่ำของแท่งที่กำลังก่อตัว (ไส้อาจยาวขึ้นก่อน brick ปิด) pattern ที่ต้องดูไส้ (Engulf, Reversal, NoWick, Reverse Engulf, RevEngulf02) จึงเป็นการประมาณ ผลจริงตัดสินตอน brick ปิด
@@ -51,6 +51,7 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 - **`Reversal`** แบบครอบ High-Low (ตารางด้านล่าง) ตั้ง N ที่ช่อง `Reversal: ...`
 - **`NoWick Reversal`** แบบแท่งไม่มีไส้ (ด้านล่าง) ตั้ง N ที่ช่อง `NoWick Reversal: ...`
 - **`W&M`**, **`Reverse Engulf`**, **`Double Bottom/Top`**, **`FollowTrend`**, **`RevEngulf02`**, **`RGR`**, **`Reverse RGR`** ดูเงื่อนไขแต่ละแบบด้านล่าง
+- **`NoWick Engulf`** แดงตามด้วยแท่งไม่มีไส้แล้วแท่งแดงคลุม (รายละเอียดด้านล่าง)
 - **`RGR` กับ `Reverse RGR` สวนกัน** (แท่งเดียวกันเกิดทั้ง Buy และ Sell) ถ้าติ๊กทั้งคู่ จะใช้เฉพาะ RGR
 - ถ้าติ๊กหลาย pattern ที่ให้สัญญาณคนละฝั่งในแท่งเดียวกัน (เช่น Reversal Buy กับ RGR Sell เกิดตรงกัน ซึ่งปกติแท่งเดียวไม่เป็นทั้งสองสี จึงเกิดน้อยมาก) Buy ชนะ
 
@@ -63,6 +64,17 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 - no wick = High เท่ากับขอบบนของตัวแท่ง และ Low เท่ากับขอบล่างของตัวแท่ง (ยอมไส้ได้ตามช่อง `NoWick: ไส้ที่ยอมรับได้` ค่าเริ่มต้น 0 บวกครึ่ง tick)
 - บนกราฟ Renko ของ TradingView แท่งขึ้นมีไส้ได้ที่ด้านล่าง ส่วนแท่งลงมีไส้ได้ที่ด้านบน (ด้านปลายแท่งไม่มีไส้)
 - ไม่ต้องครอบ High-Low ของแท่งก่อนหน้า (ต่างจาก Reversal แบบแรก) ป้ายบนกราฟเป็น `Buy NoWick` / `Sell NoWick`
+
+### เงื่อนไขแบบ NoWick Engulf (ใหม่)
+
+อ่านจากแท่งเก่า → ใหม่ (4 แท่ง) เข้าที่แท่งสุดท้าย:
+
+| ฝั่ง | รูปแบบ |
+|---|---|
+| **Sell** | แดง → แดงไม่มีไส้ → เขียวไม่มีไส้ → **แดงที่ High-Low คลุมแท่งเขียวก่อนหน้า (เข้า Sell)** |
+| **Buy** | เขียว → เขียวไม่มีไส้ → แดงไม่มีไส้ → **เขียวที่ High-Low คลุมแท่งแดงก่อนหน้า (เข้า Buy)** |
+
+- "ไม่มีไส้" ใช้เกณฑ์เดียวกับ NoWick Reversal (ปรับได้ที่ช่อง `NoWick: ไส้ที่ยอมรับได้`) "คลุม" = High ≥ High และ Low ≤ Low ของแท่งก่อนหน้า (ใช้ค่า tolerance เดียวกับ Engulf) แท่งแรกมีไส้ได้ ป้ายเป็น `Buy/Sell NW Engulf`
 
 ### เงื่อนไขแบบ Reverse RGR (ใหม่)
 
