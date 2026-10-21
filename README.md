@@ -325,6 +325,13 @@ TradingView เรียกเข้าเครื่องคุณตรง�
   - secret อยู่ใน URL ของ Alert (และขึ้นในหน้า ngrok `127.0.0.1:4040`) อย่าแชร์ภาพหน้าจอ
 4. ตอนเทรด เปิด **บอท** (`python3 topstepx_bot.py run`) และ **ngrok** (`ngrok http 8765`) ค้างไว้ทั้งสองหน้าต่าง (ดูหัวข้อ 3)
 
+## ออเดอร์เดิมค้างใน TopstepX (Indicator คิดว่าปิดแล้ว แต่โบรกเกอร์ยังถืออยู่)
+เกิดได้เมื่อใช้ Exit mode TP/SL แล้ว Indicator เห็นว่าแตะ TP/SL (ตรวจตอน brick ปิด) และเข้าออเดอร์ใหม่ทันที แต่ใน TopstepX ออเดอร์เดิมยังไม่ถูกปิด
+- ตั้ง `"close_before_entry": true` ใน `bot/config.json` ของคุณ (ตัวอย่างอยู่ใน `config.example.json`) แล้ว **ทุกครั้งที่ได้ Buy/Sell บอทจะปิดสถานะเดิม + Cancel All ก่อน แล้วค่อยกด Buy/Sell** ลำดับ: Close Position → รอ 0.1 วินาที → Cancel All → รอ 0.1 วินาที → Buy/Sell
+- ปลอดภัยแม้ TopstepX ว่างอยู่แล้ว (Close Position ตอน flat ไม่เกิดอะไร) และ Cancel All ล้าง TP/SL ที่ค้างของออเดอร์เก่า ก่อนที่ออเดอร์ใหม่จะสร้าง TP/SL ของตัวเอง
+- ข้อแลกเปลี่ยน: เสียเวลาเพิ่มประมาณ 0.2–0.3 วินาทีต่อสัญญาณ และถ้า Indicator ส่ง Buy ซ้ำฝั่งเดิมขณะที่ออเดอร์เดิมยังวิ่งอยู่ (ซึ่ง Indicator คิดว่าปิดไปแล้ว) ออเดอร์เดิมจะถูกปิดก่อนที่จะแตะ TP/SL ของโบรกเกอร์
+- ถ้าตั้ง `"exit_key": "flatten_all"` การปิดนี้จะ **ปิดทั้งบัญชี** (ทุกสัญลักษณ์) ใช้ `close` (ค่าเริ่มต้น) ถ้าเทรดหลายสัญลักษณ์
+
 ## ทดสอบสายส่งด้วยปุ่มทดสอบใน Indicator
 ไม่ต้องรอสัญญาณจริง (ใช้ได้ตอนตลาดฟิวเจอร์สปิด ให้เปิดบนสัญลักษณ์ที่ราคาขยับ เช่น BTCUSD):
 1. ใน Indicator ตั้ง Alert mode = `TopstepX Clicker`, เปิด **ส่งสัญญาณทดสอบไปบอท**, เลือก **ทดสอบ action** (buy/sell)
@@ -363,6 +370,7 @@ TradingView เรียกเข้าเครื่องคุณตรง�
 | `hotkeys` | คีย์ `buy`, `sell`, `close`, `cancel_all` ตัวที่ไม่ใส่ใช้ค่าแนะนำตามระบบปฏิบัติการ |
 | `exit_key` | คีย์ที่ใช้ปิดสถานะ: `close` (Close Position ค่าเริ่มต้น) หรือ `flatten_all` (Flatten All) |
 | `cancel_after_close` | กด Cancel All หลัง Close Position (ค่าเริ่มต้น true) |
+| `close_before_entry` | ก่อนกด Buy/Sell ทุกครั้ง ให้ปิดสถานะเดิม (Close Position หรือ Flatten All ตาม `exit_key`) + Cancel All ก่อน แล้วค่อยกดเข้า (ค่าเริ่มต้น false ต้องเพิ่มเองใน `config.json` ของคุณ) ดูหัวข้อ "ออเดอร์เดิมค้าง" |
 | `cancel_delay_seconds` | หน่วงระหว่างคีย์ Close → Cancel All → Buy/Sell (ค่าเริ่มต้น 0.1 วินาที) |
 
 หยุดฉุกเฉิน: ลากเมาส์ไปมุมซ้ายบนของจอ หรือปิดบอท (Ctrl+C)

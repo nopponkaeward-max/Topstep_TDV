@@ -3,5 +3,6 @@
   "dry_run": true,
   "host": "127.0.0.1",
   "port": 8765,
-  "max_age_seconds": 120
+  "max_age_seconds": 120,
+  "close_before_entry": true
 }

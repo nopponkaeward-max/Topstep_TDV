@@ -175,6 +175,8 @@ def validate(cfg, data, url_secret=None):
             return None, None, False, f"id ซ้ำ ({sig_id}) ข้าม"
         seen_ids.append(sig_id)
     close_first = data.get("close_first") is True   # ใน brick เดียวกันที่ออกแล้วกลับทิศ: ปิดสถานะก่อนแล้วค่อยเข้า (ในข้อความเดียว ลำดับไม่สลับ)
+    if action in ("buy", "sell") and cfg.get("close_before_entry", False):
+        close_first = True   # ตั้งใน config: ก่อนกด Buy/Sell ให้ปิดสถานะเดิม + Cancel All ก่อนเสมอ (กันออเดอร์เก่าค้างเมื่อ Indicator กับ TopstepX ไม่ตรงกัน)
     return action, event, close_first, None
 
 
