@@ -351,7 +351,7 @@ Indicator `RSI_Di_FiboExtension V2.0` หรือ `V3.0` (repo `AO-DiverOh`, �
 | `Fibo Exit Sell` | Close Position (+ Cancel All ถ้า `cancel_after_close` เปิด) |
 
 **ขั้นตอน**
-1. ใส่ Indicator บนกราฟ ไม่ต้องตั้งหมวด "10. Webhook / Alert" ใน Indicator (ใช้เฉพาะแบบ `alert()`)
+1. ใส่ Indicator บนกราฟ ไม่ต้องตั้งหมวด "4. Webhook / Alert (ใน V3.0; V2.0 คือหมวด 10)" ใน Indicator (ใช้เฉพาะแบบ `alert()`)
 2. สร้าง Alert ทีละตัว (4 ตัว) Condition = Indicator นี้ → เลือกชื่อจากตารางด้านบน, Frequency = **Once Per Bar** (ออเดอร์เปิดทันทีที่ราคาแตะระดับ Fibo ไม่รอแท่งปิด)
 3. Notifications → Webhook URL ใส่ `https://โดเมนของคุณ.ngrok-free.dev/?secret=รหัสของคุณ` (ต้องมี `?secret=` ทุก Alert เหมือนแบบ B)
 
