@@ -8,6 +8,7 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 
 ## ไฟล์
 - `pine/renko_engulf_v6.pine` Indicator ที่เพิ่มโหมด `TopstepX Clicker` (ต้นฉบับ: `renko_engulf_v6.pine` ที่ใช้บนกราฟ Renko ของ TradingView)
+- `RSI_Di_FiboExtension V2.0` (อยู่ใน repo `AO-DiverOh`) Indicator อีกตัวที่ใช้กับบอทนี้ได้ ดูหัวข้อ "4.1 ใช้กับ RSI_Di_FiboExtension V2.0"
 - `bot/topstepx_bot.py` บอท, `bot/config.example.json` ตัวอย่างค่าตั้ง
 
 ## กติกาสัญญาณ
@@ -337,6 +338,36 @@ TradingView เรียกเข้าเครื่องคุณตรง�
   - secret อยู่ใน URL ของ Alert (และขึ้นในหน้า ngrok `127.0.0.1:4040`) อย่าแชร์ภาพหน้าจอ
 4. ตอนเทรด เปิด **บอท** (`python3 topstepx_bot.py run`) และ **ngrok** (`ngrok http 8765`) ค้างไว้ทั้งสองหน้าต่าง (ดูหัวข้อ 3)
 
+## 4.1 ใช้กับ RSI_Di_FiboExtension V2.0 (Alert แยก Buy / Sell / Exit)
+Indicator `RSI_Di_FiboExtension V2.0` (repo `AO-DiverOh`, ไฟล์ `RSI_Di_FiboExtension_V2.0.pine`) ส่งสัญญาณเข้าบอทตัวเดียวกันนี้ได้ด้วยวิธีแบบ B (alertcondition) ไม่ต้องใช้ "Any alert() function call" เป็นกราฟราคาปกติ ไม่ใช่ Renko
+
+**Condition ที่ขึ้นในรายการ Alert** (ข้อความ Message ปล่อยตามค่าเริ่มต้นได้เลย เป็น JSON เหมือนตารางแบบ B ด้านบน):
+
+| Condition ที่เลือก | บอทกดอะไร |
+|---|---|
+| `Fibo BUY` | Buy Market |
+| `Fibo SELL` | Sell Market |
+| `Fibo Exit Buy` | Close Position (+ Cancel All ถ้า `cancel_after_close` เปิด) |
+| `Fibo Exit Sell` | Close Position (+ Cancel All ถ้า `cancel_after_close` เปิด) |
+
+**ขั้นตอน**
+1. ใส่ Indicator บนกราฟ ไม่ต้องตั้งหมวด "10. Webhook / Alert" ใน Indicator (ใช้เฉพาะแบบ `alert()`)
+2. สร้าง Alert ทีละตัว (4 ตัว) Condition = Indicator นี้ → เลือกชื่อจากตารางด้านบน, Frequency = **Once Per Bar** (ออเดอร์เปิดทันทีที่ราคาแตะระดับ Fibo ไม่รอแท่งปิด)
+3. Notifications → Webhook URL ใส่ `https://โดเมนของคุณ.ngrok-free.dev/?secret=รหัสของคุณ` (ต้องมี `?secret=` ทุก Alert เหมือนแบบ B)
+
+**ตั้งค่าบอทและ TopstepX ให้เหมาะกับ Indicator นี้**
+- `close_before_entry` ต้องเป็น **`false`** Indicator นี้เปิดได้หลายไม้ (หลายระดับ Fibo) ในรอบเดียว ถ้าเป็น `true` ทุกคำสั่ง Buy/Sell จะปิดสถานะเดิมก่อน ทำให้ไม้ที่สองไปปิดไม้แรก
+- ตั้ง **SL/TP (bracket) และขนาดสัญญาใน TopstepX เอง** บอทไม่รับ level/SL/TP/lot ระดับ Fibo ที่ Indicator คำนวณจึงไม่ถูกส่งมาที่ TopstepX
+- ขนาดสัญญาที่ตั้งใน TopstepX คือ **ต่อ 1 คำสั่ง** ถ้า Indicator เปิด 3 ระดับ บอทจะกด Buy/Sell 3 ครั้ง ได้ 3 เท่าของขนาดที่ตั้ง
+- **Exit ส่งเฉพาะไม้สุดท้ายของทิศนั้น** เพราะ `close` = Close Position ปิดทั้ง position ถ้าส่งตอนไม้แรกปิดจะไปปิดไม้ที่เหลือด้วย
+
+**ข้อจำกัดของ alertcondition กับ Indicator นี้**
+- แท่งเดียวเปิดหลายระดับพร้อมกัน (เช่น 1.136 กับ 1.272) Alert ส่งครั้งเดียวต่อแท่ง บอทกด Buy/Sell 1 ครั้ง ถ้าต้องการให้ครบทุกไม้ ใช้โหมด `TopstepX Clicker` ในหน้าตั้งค่า Indicator แล้วสร้าง Alert แบบ `Any alert() function call` (แบบ A) ซึ่งส่งครบทุกไม้และมี secret ในข้อความ
+- `id` ใช้เวลา `{{timenow}}` ถ้ามีสองสัญญาณเวลาเดียวกัน บอทข้ามตัวที่สองเป็น id ซ้ำ
+- บอทไม่ตรวจสถานะบัญชี ผล SL/TP ของ TopstepX กับของ Indicator อาจไม่ตรงกันทุกไม้
+
+รายละเอียดเพิ่มเติม (โหมด OKX, ขั้นตอนเต็ม): `README_Alert_V2.0.md` ใน repo `AO-DiverOh`
+
 ## ออเดอร์เดิมค้างใน TopstepX (Indicator คิดว่าปิดแล้ว แต่โบรกเกอร์ยังถืออยู่)
 เกิดได้เมื่อใช้ Exit mode TP/SL แล้ว Indicator เห็นว่าแตะ TP/SL (ตรวจตอน brick ปิด) และเข้าออเดอร์ใหม่ทันที แต่ใน TopstepX ออเดอร์เดิมยังไม่ถูกปิด
 - ตั้ง `"close_before_entry": true` ใน `bot/config.json` ของคุณ (ตัวอย่างอยู่ใน `config.example.json`) แล้ว **ทุกครั้งที่ได้ Buy/Sell บอทจะปิดสถานะเดิม + Cancel All ก่อน แล้วค่อยกด Buy/Sell** ลำดับ (ค่าแนะนำ `"cancel_after_close": false` เมื่อไม่มี TP/SL ค้างอยู่): Close Position → รอ `entry_delay_seconds` (ค่าเริ่มต้น 0.05 วินาที) → Buy/Sell (ถ้าเปิด `cancel_after_close: true` จะมี Cancel All + รอ `cancel_delay_seconds` 0.1 วินาทีแทรกหลัง Close Position)
@@ -383,7 +414,7 @@ TradingView เรียกเข้าเครื่องคุณตรง�
 | `exit_key` | คีย์ที่ใช้ปิดสถานะ: `close` (Close Position ค่าเริ่มต้น) หรือ `flatten_all` (Flatten All) |
 | `cancel_after_close` | กด Cancel All หลัง Close Position (ค่าเริ่มต้น true) |
 | `entry_delay_seconds` | พักระหว่างปิดสถานะกับกดเข้า เมื่อมีการปิดก่อนเข้า (ค่าเริ่มต้น 0.05 วินาที) |
-| `close_before_entry` | ก่อนกด Buy/Sell ทุกครั้ง ให้ปิดสถานะเดิม (Close Position หรือ Flatten All ตาม `exit_key`) + Cancel All ก่อน แล้วค่อยกดเข้า (ค่าเริ่มต้น false ต้องเพิ่มเองใน `config.json` ของคุณ) ดูหัวข้อ "ออเดอร์เดิมค้าง" |
+| `close_before_entry` | (ใช้กับ Indicator ที่เปิดได้หลายไม้ เช่น RSI_Di_FiboExtension ต้องเป็น `false`) ก่อนกด Buy/Sell ทุกครั้ง ให้ปิดสถานะเดิม (Close Position หรือ Flatten All ตาม `exit_key`) + Cancel All ก่อน แล้วค่อยกดเข้า (ค่าเริ่มต้น false ต้องเพิ่มเองใน `config.json` ของคุณ) ดูหัวข้อ "ออเดอร์เดิมค้าง" |
 | `cancel_delay_seconds` | หน่วงระหว่างคีย์ Close → Cancel All → Buy/Sell (ค่าเริ่มต้น 0.1 วินาที) |
 
 หยุดฉุกเฉิน: ลากเมาส์ไปมุมซ้ายบนของจอ หรือปิดบอท (Ctrl+C)
