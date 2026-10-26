@@ -8,7 +8,7 @@ Indicator (Renko Engulf) → alert() JSON → Webhook (อุโมงค์ HTT
 
 ## ไฟล์
 - `pine/renko_engulf_v6.pine` Indicator ที่เพิ่มโหมด `TopstepX Clicker` (ต้นฉบับ: `renko_engulf_v6.pine` ที่ใช้บนกราฟ Renko ของ TradingView)
-- `RSI_Di_FiboExtension V2.0` (อยู่ใน repo `AO-DiverOh`) Indicator อีกตัวที่ใช้กับบอทนี้ได้ ดูหัวข้อ "4.1 ใช้กับ RSI_Di_FiboExtension V2.0"
+- `RSI_Di_FiboExtension V2.0 / V3.0` (อยู่ใน repo `AO-DiverOh`) Indicator อีกตัวที่ใช้กับบอทนี้ได้ ดูหัวข้อ "4.1 ใช้กับ RSI_Di_FiboExtension V2.0"
 - `bot/topstepx_bot.py` บอท, `bot/config.example.json` ตัวอย่างค่าตั้ง
 
 ## กติกาสัญญาณ
@@ -338,8 +338,8 @@ TradingView เรียกเข้าเครื่องคุณตรง�
   - secret อยู่ใน URL ของ Alert (และขึ้นในหน้า ngrok `127.0.0.1:4040`) อย่าแชร์ภาพหน้าจอ
 4. ตอนเทรด เปิด **บอท** (`python3 topstepx_bot.py run`) และ **ngrok** (`ngrok http 8765`) ค้างไว้ทั้งสองหน้าต่าง (ดูหัวข้อ 3)
 
-## 4.1 ใช้กับ RSI_Di_FiboExtension V2.0 (Alert แยก Buy / Sell / Exit)
-Indicator `RSI_Di_FiboExtension V2.0` (repo `AO-DiverOh`, ไฟล์ `RSI_Di_FiboExtension_V2.0.pine`) ส่งสัญญาณเข้าบอทตัวเดียวกันนี้ได้ด้วยวิธีแบบ B (alertcondition) ไม่ต้องใช้ "Any alert() function call" เป็นกราฟราคาปกติ ไม่ใช่ Renko
+## 4.1 ใช้กับ RSI_Di_FiboExtension V2.0 / V3.0 (Alert แยก Buy / Sell / Exit)
+Indicator `RSI_Di_FiboExtension V2.0` หรือ `V3.0` (repo `AO-DiverOh`, ไฟล์ `RSI_Di_FiboExtension_V2.0.pine` / `RSI_Di_FiboExtension_V3.0.pine` Alert ชุดเดียวกัน) ส่งสัญญาณเข้าบอทตัวเดียวกันนี้ได้ด้วยวิธีแบบ B (alertcondition) ไม่ต้องใช้ "Any alert() function call" เป็นกราฟราคาปกติ ไม่ใช่ Renko
 
 **Condition ที่ขึ้นในรายการ Alert** (ข้อความ Message ปล่อยตามค่าเริ่มต้นได้เลย เป็น JSON เหมือนตารางแบบ B ด้านบน):
 
@@ -366,7 +366,9 @@ Indicator `RSI_Di_FiboExtension V2.0` (repo `AO-DiverOh`, ไฟล์ `RSI_Di_F
 - `id` ใช้เวลา `{{timenow}}` ถ้ามีสองสัญญาณเวลาเดียวกัน บอทข้ามตัวที่สองเป็น id ซ้ำ
 - บอทไม่ตรวจสถานะบัญชี ผล SL/TP ของ TopstepX กับของ Indicator อาจไม่ตรงกันทุกไม้
 
-รายละเอียดเพิ่มเติม (โหมด OKX, ขั้นตอนเต็ม): `README_Alert_V2.0.md` ใน repo `AO-DiverOh`
+**Alert เตือน (ไม่ส่งเข้าบอท):** "เตือน: เบรค High 1 แต่ RSI ต่ำกว่า" และ "เตือน: เบรค Low 1 แต่ RSI สูงกว่า" ใช้แจ้งเตือนผ่านป๊อปอัป/แอป/อีเมลเท่านั้น **ไม่ต้องใส่ Webhook URL** เพราะข้อความไม่ใช่ JSON ที่บอทอ่าน
+
+รายละเอียดเพิ่มเติม (โหมด OKX, ขั้นตอนเต็ม, โหมด Fibo 0 ของ V3.0): `README_Alert_V2.0.md` / `README_Alert_V3.0.md` ใน repo `AO-DiverOh`
 
 ## ออเดอร์เดิมค้างใน TopstepX (Indicator คิดว่าปิดแล้ว แต่โบรกเกอร์ยังถืออยู่)
 เกิดได้เมื่อใช้ Exit mode TP/SL แล้ว Indicator เห็นว่าแตะ TP/SL (ตรวจตอน brick ปิด) และเข้าออเดอร์ใหม่ทันที แต่ใน TopstepX ออเดอร์เดิมยังไม่ถูกปิด
